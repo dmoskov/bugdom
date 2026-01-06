@@ -12,8 +12,122 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     1000
 );
-camera.position.set(0, 5, 10);
-camera.lookAt(0, 0, 0);
+
+// ============================================
+// PLAYER BUG CHARACTER
+// ============================================
+
+// Create the player bug character
+function createBugCharacter() {
+    const bugGroup = new THREE.Group();
+
+    // Body (main ellipsoid sphere)
+    const bodyGeometry = new THREE.SphereGeometry(0.6, 16, 12);
+    bodyGeometry.scale(1, 0.7, 1.2);
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8b4513, // Brown
+        roughness: 0.6,
+        metalness: 0.1
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.position.y = 0.5;
+    body.castShadow = true;
+    bugGroup.add(body);
+
+    // Head (smaller sphere)
+    const headGeometry = new THREE.SphereGeometry(0.35, 12, 10);
+    const headMaterial = new THREE.MeshStandardMaterial({
+        color: 0x654321, // Darker brown
+        roughness: 0.5,
+        metalness: 0.1
+    });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.set(0, 0.6, 0.7);
+    head.castShadow = true;
+    bugGroup.add(head);
+
+    // Eyes (two small white spheres with black pupils)
+    const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 6);
+    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const pupilGeometry = new THREE.SphereGeometry(0.05, 6, 4);
+    const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+
+    [-0.15, 0.15].forEach(xOffset => {
+        const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        eye.position.set(xOffset, 0.7, 1.0);
+        bugGroup.add(eye);
+
+        const pupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+        pupil.position.set(xOffset, 0.7, 1.08);
+        bugGroup.add(pupil);
+    });
+
+    // Antennae
+    const antennaGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.4, 6);
+    const antennaMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+    const antennaTipGeometry = new THREE.SphereGeometry(0.05, 6, 4);
+
+    [-0.12, 0.12].forEach((xOffset, i) => {
+        const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+        antenna.position.set(xOffset, 1.0, 0.8);
+        antenna.rotation.x = Math.PI / 6;
+        antenna.rotation.z = xOffset > 0 ? -0.3 : 0.3;
+        bugGroup.add(antenna);
+
+        const tip = new THREE.Mesh(antennaTipGeometry, antennaMaterial);
+        tip.position.set(xOffset * 1.5, 1.15, 0.95);
+        bugGroup.add(tip);
+    });
+
+    // Legs (6 legs - 3 on each side)
+    const legGeometry = new THREE.CylinderGeometry(0.03, 0.02, 0.5, 6);
+    const legMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+
+    const legPositions = [
+        { x: -0.4, z: 0.3, rotZ: 0.8 },   // Front left
+        { x: 0.4, z: 0.3, rotZ: -0.8 },   // Front right
+        { x: -0.5, z: 0, rotZ: 1.0 },     // Middle left
+        { x: 0.5, z: 0, rotZ: -1.0 },     // Middle right
+        { x: -0.4, z: -0.3, rotZ: 0.8 },  // Back left
+        { x: 0.4, z: -0.3, rotZ: -0.8 }   // Back right
+    ];
+
+    legPositions.forEach((pos, index) => {
+        const leg = new THREE.Mesh(legGeometry, legMaterial);
+        leg.position.set(pos.x, 0.3, pos.z);
+        leg.rotation.z = pos.rotZ;
+        leg.rotation.x = 0.2;
+        leg.castShadow = true;
+        leg.userData.legIndex = index;
+        bugGroup.add(leg);
+    });
+
+    // Store reference to legs for animation
+    bugGroup.userData.legs = bugGroup.children.filter(child => child.userData.legIndex !== undefined);
+
+    return bugGroup;
+}
+
+// Create the player bug
+const playerBug = createBugCharacter();
+playerBug.position.set(0, 0, 0);
+scene.add(playerBug);
+
+// Player state
+const playerState = {
+    velocity: new THREE.Vector3(),
+    rotation: 0,
+    moveSpeed: 0.15,
+    rotationSpeed: 0.08,
+    isMoving: false,
+    legAnimationTime: 0
+};
+
+// Third-person camera offset
+const cameraOffset = new THREE.Vector3(0, 4, 8);
+const cameraLookOffset = new THREE.Vector3(0, 1, 0);
+camera.position.set(0, 4, 8);
+camera.lookAt(0, 1, 0);
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -327,12 +441,12 @@ cloverPositions.forEach((pos, index) => {
 // Collision detection radius
 const COLLECTION_RADIUS = 2.5;
 
-// Check for clover collection
+// Check for clover collection (based on bug position)
 function checkCloverCollision() {
     clovers.forEach(clover => {
         if (clover.userData.collected) return;
 
-        const distance = camera.position.distanceTo(clover.position);
+        const distance = playerBug.position.distanceTo(clover.position);
 
         if (distance < COLLECTION_RADIUS) {
             collectClover(clover);
@@ -410,7 +524,7 @@ function animateClovers(time) {
 }
 
 // ============================================
-// CAMERA CONTROLS
+// PLAYER CONTROLS
 // ============================================
 
 const keys = {
@@ -426,52 +540,105 @@ window.addEventListener('keyup', (e) => {
     if (e.key in keys) keys[e.key] = false;
 });
 
-let mouseX = 0;
-let mouseY = 0;
-let targetRotationY = 0;
-let targetRotationX = 0;
+// Animate the bug's legs when moving
+function animateBugLegs(deltaTime) {
+    if (!playerState.isMoving) return;
 
-window.addEventListener('mousemove', (e) => {
-    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-    mouseY = (e.clientY / window.innerHeight) * 2 - 1;
-    targetRotationY = -mouseX * Math.PI;
-    targetRotationX = -mouseY * 0.5;
-});
+    playerState.legAnimationTime += deltaTime * 0.015;
+    const legs = playerBug.userData.legs;
+
+    legs.forEach((leg, index) => {
+        // Alternate leg movement pattern (tripod gait)
+        const phase = index % 2 === 0 ? 0 : Math.PI;
+        const swing = Math.sin(playerState.legAnimationTime * 10 + phase) * 0.3;
+        leg.rotation.x = 0.2 + swing;
+    });
+}
+
+// Update player bug position based on input
+function updatePlayerBug() {
+    const moveForward = keys.w || keys.ArrowUp;
+    const moveBackward = keys.s || keys.ArrowDown;
+    const turnLeft = keys.a || keys.ArrowLeft;
+    const turnRight = keys.d || keys.ArrowRight;
+
+    // Rotation
+    if (turnLeft) {
+        playerState.rotation += playerState.rotationSpeed;
+    }
+    if (turnRight) {
+        playerState.rotation -= playerState.rotationSpeed;
+    }
+
+    // Apply rotation to bug
+    playerBug.rotation.y = playerState.rotation;
+
+    // Movement
+    playerState.isMoving = false;
+    const direction = new THREE.Vector3();
+
+    if (moveForward) {
+        direction.z = -1;
+        playerState.isMoving = true;
+    }
+    if (moveBackward) {
+        direction.z = 1;
+        playerState.isMoving = true;
+    }
+
+    if (direction.length() > 0) {
+        direction.normalize();
+        // Rotate direction by bug's rotation
+        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerState.rotation);
+
+        // Apply movement
+        playerBug.position.x += direction.x * playerState.moveSpeed;
+        playerBug.position.z += direction.z * playerState.moveSpeed;
+
+        // Keep bug within boundaries
+        playerBug.position.x = Math.max(-45, Math.min(45, playerBug.position.x));
+        playerBug.position.z = Math.max(-45, Math.min(45, playerBug.position.z));
+    }
+}
+
+// Update camera to follow the bug (third-person view)
+function updateCamera() {
+    // Calculate desired camera position based on bug's position and rotation
+    const offset = cameraOffset.clone();
+    offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerState.rotation);
+
+    const targetCameraPos = playerBug.position.clone().add(offset);
+
+    // Smooth camera follow
+    camera.position.lerp(targetCameraPos, 0.1);
+
+    // Look at bug with slight offset
+    const lookTarget = playerBug.position.clone().add(cameraLookOffset);
+    camera.lookAt(lookTarget);
+}
 
 // ============================================
 // ANIMATION LOOP
 // ============================================
 
 let animationTime = 0;
+let lastTime = 0;
 
-function animate() {
+function animate(currentTime) {
     requestAnimationFrame(animate);
-    animationTime += 16; // ~60fps
 
-    // Camera movement
-    const speed = 0.2;
-    const direction = new THREE.Vector3();
+    const deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+    animationTime += 16; // ~60fps for clover animation
 
-    if (keys.w || keys.ArrowUp) direction.z -= 1;
-    if (keys.s || keys.ArrowDown) direction.z += 1;
-    if (keys.a || keys.ArrowLeft) direction.x -= 1;
-    if (keys.d || keys.ArrowRight) direction.x += 1;
+    // Update player bug movement
+    updatePlayerBug();
 
-    if (direction.length() > 0) {
-        direction.normalize();
-        direction.applyQuaternion(camera.quaternion);
-        camera.position.x += direction.x * speed;
-        camera.position.z += direction.z * speed;
+    // Animate bug legs
+    animateBugLegs(deltaTime);
 
-        // Keep camera within boundaries
-        camera.position.x = Math.max(-45, Math.min(45, camera.position.x));
-        camera.position.z = Math.max(-45, Math.min(45, camera.position.z));
-    }
-
-    // Smooth camera rotation
-    camera.rotation.y += (targetRotationY - camera.rotation.y) * 0.05;
-    camera.rotation.x += (targetRotationX - camera.rotation.x) * 0.05;
-    camera.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, camera.rotation.x));
+    // Update third-person camera
+    updateCamera();
 
     // Update clovers animation
     animateClovers(animationTime);
@@ -490,7 +657,7 @@ window.addEventListener('resize', () => {
 });
 
 // Start animation
-animate();
+animate(0);
 
 // Export scene for testing
-export { scene, camera, renderer, score, clovers };
+export { scene, camera, renderer, score, clovers, playerBug };
