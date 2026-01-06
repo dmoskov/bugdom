@@ -48,6 +48,20 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             border: 2px solid rgba(255, 255, 255, 0.3);
         }
+        #clover-count {
+            position: absolute;
+            top: 10px;
+            right: 360px;
+            color: white;
+            background: linear-gradient(135deg, rgba(34, 139, 34, 0.8), rgba(0, 100, 0, 0.8));
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
         canvas {
             display: block;
         }
@@ -147,6 +161,7 @@
         A/Left: Turn left | D/Right: Turn right<br>
         Collect clovers! Avoid enemy ants!
     </div>
+    <div id="clover-count">Clovers: 0/13</div>
     <div id="health">Health: 100</div>
     <div id="score">Score: 0</div>
     <div id="audio-controls">

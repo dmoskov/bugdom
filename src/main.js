@@ -336,6 +336,12 @@ for (let i = -40; i <= 40; i += 10) {
 // Score state
 let score = 0;
 const clovers = [];
+let cloversCollected = 0;
+const TOTAL_CLOVERS = 13;
+
+// Game state
+let gameWon = false;
+let gameStartTime = 0;
 
 // Create a single clover leaf (heart shape)
 function createCloverLeaf() {
@@ -460,6 +466,7 @@ function collectClover(clover) {
     if (clover.userData.collected) return;
 
     clover.userData.collected = true;
+    cloversCollected++;
 
     // Four-leaf clovers worth more
     const points = clover.userData.isFourLeaf ? 25 : 10;
@@ -470,9 +477,15 @@ function collectClover(clover) {
 
     // Update score display
     updateScoreDisplay();
+    updateCloverCountDisplay();
 
     // Animate collection (scale down and fade)
     animateCollection(clover);
+
+    // Check for victory
+    if (cloversCollected >= TOTAL_CLOVERS) {
+        victory();
+    }
 }
 
 // Collection animation
@@ -511,6 +524,242 @@ function updateScoreDisplay() {
     if (scoreElement) {
         scoreElement.textContent = `Score: ${score}`;
     }
+}
+
+// Update clover count display in UI
+function updateCloverCountDisplay() {
+    const cloverCountElement = document.getElementById('clover-count');
+    if (cloverCountElement) {
+        cloverCountElement.textContent = `Clovers: ${cloversCollected}/${TOTAL_CLOVERS}`;
+    }
+}
+
+// ============================================
+// CONFETTI PARTICLE SYSTEM
+// ============================================
+
+let confettiParticles = null;
+const CONFETTI_COUNT = 500;
+
+function createConfetti() {
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(CONFETTI_COUNT * 3);
+    const colors = new Float32Array(CONFETTI_COUNT * 3);
+    const velocities = [];
+    const rotations = [];
+
+    // Confetti colors (festive)
+    const confettiColors = [
+        new THREE.Color(0xff0000), // Red
+        new THREE.Color(0x00ff00), // Green
+        new THREE.Color(0x0000ff), // Blue
+        new THREE.Color(0xffff00), // Yellow
+        new THREE.Color(0xff00ff), // Magenta
+        new THREE.Color(0x00ffff), // Cyan
+        new THREE.Color(0xff8800), // Orange
+        new THREE.Color(0x88ff00), // Lime
+        new THREE.Color(0xffffff)  // White
+    ];
+
+    for (let i = 0; i < CONFETTI_COUNT; i++) {
+        // Start from player position, spread out
+        positions[i * 3] = playerBug.position.x + (Math.random() - 0.5) * 10;
+        positions[i * 3 + 1] = playerBug.position.y + Math.random() * 20 + 5;
+        positions[i * 3 + 2] = playerBug.position.z + (Math.random() - 0.5) * 10;
+
+        // Random velocity (mostly upward, then falling)
+        velocities.push({
+            x: (Math.random() - 0.5) * 0.3,
+            y: Math.random() * 0.2 + 0.1,
+            z: (Math.random() - 0.5) * 0.3,
+            gravity: 0.008 + Math.random() * 0.005
+        });
+
+        rotations.push(Math.random() * Math.PI * 2);
+
+        // Random color
+        const color = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+        colors[i * 3] = color.r;
+        colors[i * 3 + 1] = color.g;
+        colors[i * 3 + 2] = color.b;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const material = new THREE.PointsMaterial({
+        size: 0.4,
+        vertexColors: true,
+        transparent: true,
+        opacity: 1
+    });
+
+    confettiParticles = new THREE.Points(geometry, material);
+    confettiParticles.userData.velocities = velocities;
+    confettiParticles.userData.startTime = performance.now();
+    scene.add(confettiParticles);
+}
+
+function updateConfetti() {
+    if (!confettiParticles) return;
+
+    const positions = confettiParticles.geometry.attributes.position.array;
+    const velocities = confettiParticles.userData.velocities;
+    const elapsed = (performance.now() - confettiParticles.userData.startTime) / 1000;
+
+    // Fade out after 4 seconds
+    if (elapsed > 4) {
+        confettiParticles.material.opacity = Math.max(0, 1 - (elapsed - 4) / 2);
+    }
+
+    // Remove after 6 seconds
+    if (elapsed > 6) {
+        scene.remove(confettiParticles);
+        confettiParticles.geometry.dispose();
+        confettiParticles.material.dispose();
+        confettiParticles = null;
+        return;
+    }
+
+    for (let i = 0; i < CONFETTI_COUNT; i++) {
+        positions[i * 3] += velocities[i].x;
+        positions[i * 3 + 1] += velocities[i].y;
+        positions[i * 3 + 2] += velocities[i].z;
+
+        // Apply gravity
+        velocities[i].y -= velocities[i].gravity;
+
+        // Add some swaying motion
+        positions[i * 3] += Math.sin(elapsed * 5 + i) * 0.02;
+    }
+
+    confettiParticles.geometry.attributes.position.needsUpdate = true;
+}
+
+// ============================================
+// VICTORY SCREEN
+// ============================================
+
+function victory() {
+    if (gameWon) return;
+    gameWon = true;
+
+    // Calculate elapsed time
+    const elapsedTime = (performance.now() - gameStartTime) / 1000;
+    const minutes = Math.floor(elapsedTime / 60);
+    const seconds = Math.floor(elapsedTime % 60);
+    const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    // Play victory sound (also stops music)
+    audioManager.playVictory();
+
+    // Create confetti celebration
+    createConfetti();
+
+    // Delay showing the victory screen to let confetti start
+    setTimeout(() => {
+        showVictoryScreen(timeString);
+    }, 1500);
+}
+
+function showVictoryScreen(timeString) {
+    // Create victory overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'victory-screen';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: white;
+        font-family: Arial, sans-serif;
+        animation: fadeIn 0.5s ease-in;
+    `;
+
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @keyframes sparkle {
+            0%, 100% { text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold; }
+            50% { text-shadow: 0 0 20px gold, 0 0 40px gold, 0 0 60px gold; }
+        }
+        #victory-screen h1 {
+            animation: bounce 1s ease-in-out infinite, sparkle 1.5s ease-in-out infinite;
+        }
+        #victory-screen .stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin: 10px;
+            min-width: 200px;
+            text-align: center;
+        }
+        #victory-screen .stat-label {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        #victory-screen .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4a9d2e;
+        }
+        #victory-screen button {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #4a9d2e, #228b22);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        #victory-screen button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+    `;
+    document.head.appendChild(style);
+
+    overlay.innerHTML = `
+        <h1 style="font-size: 64px; color: gold; margin-bottom: 20px;">LEVEL COMPLETE!</h1>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 30px;">
+            <div class="stat">
+                <div class="stat-label">TIME</div>
+                <div class="stat-value">${timeString}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">SCORE</div>
+                <div class="stat-value">${score}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">CLOVERS</div>
+                <div class="stat-value">${cloversCollected}/${TOTAL_CLOVERS}</div>
+            </div>
+        </div>
+        <div>
+            <button onclick="location.reload()">Play Again</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
 }
 
 // Animate clovers (floating and rotating)
@@ -943,7 +1192,7 @@ function animate(currentTime) {
     lastTime = currentTime;
     animationTime += 16; // ~60fps for clover animation
 
-    // Update player bug movement
+    // Update player bug movement (even after victory for camera to work)
     updatePlayerBug();
 
     // Animate bug legs
@@ -955,14 +1204,20 @@ function animate(currentTime) {
     // Update clovers animation
     animateClovers(animationTime);
 
-    // Check for clover collection
-    checkCloverCollision();
+    // Check for clover collection (only if not won yet)
+    if (!gameWon) {
+        checkCloverCollision();
+    }
 
-    // Update enemy ants
-    updateEnemies(deltaTime);
+    // Update enemy ants (only if game not won)
+    if (!gameWon) {
+        updateEnemies(deltaTime);
+        // Check for enemy collision
+        checkEnemyCollision(currentTime);
+    }
 
-    // Check for enemy collision
-    checkEnemyCollision(currentTime);
+    // Update confetti particles
+    updateConfetti();
 
     renderer.render(scene, camera);
 }
@@ -996,8 +1251,10 @@ const startOverlay = document.getElementById('start-overlay');
 if (startButton && startOverlay) {
     startButton.addEventListener('click', () => {
         gameStarted = true;
+        gameStartTime = performance.now();
         startOverlay.classList.add('hidden');
         initAudio();
+        updateCloverCountDisplay();
     });
 }
 
@@ -1030,4 +1287,4 @@ if (sfxVolume) {
 animate(0);
 
 // Export scene for testing
-export { scene, camera, renderer, score, clovers, playerBug, enemies, playerHealth, audioManager };
+export { scene, camera, renderer, score, clovers, playerBug, enemies, playerHealth, audioManager, cloversCollected, TOTAL_CLOVERS, gameWon };

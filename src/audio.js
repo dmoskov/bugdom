@@ -253,6 +253,76 @@ class AudioManager {
         finalOsc.stop(finalStart + 1.6);
     }
 
+    // Victory - triumphant ascending fanfare
+    playVictory() {
+        if (!this.isInitialized || this.isMuted) return;
+
+        const now = this.context.currentTime;
+
+        // Stop background music
+        this.stopMusic();
+
+        // Triumphant ascending fanfare (major scale to triumphant chord)
+        const fanfare = [
+            { freq: 523.25, time: 0, dur: 0.2 },      // C5
+            { freq: 587.33, time: 0.15, dur: 0.2 },   // D5
+            { freq: 659.25, time: 0.3, dur: 0.2 },    // E5
+            { freq: 698.46, time: 0.45, dur: 0.2 },   // F5
+            { freq: 783.99, time: 0.6, dur: 0.4 },    // G5
+            { freq: 880, time: 0.9, dur: 0.6 }        // A5
+        ];
+
+        fanfare.forEach(note => {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+
+            osc.type = 'square';
+            osc.frequency.value = note.freq;
+
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+
+            const startTime = now + note.time;
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+            gain.gain.setValueAtTime(0.2, startTime + note.dur - 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + note.dur);
+
+            osc.start(startTime);
+            osc.stop(startTime + note.dur + 0.1);
+        });
+
+        // Final triumphant chord (C major with octave)
+        const chordNotes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+        const chordStart = now + 1.2;
+
+        chordNotes.forEach((freq, index) => {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+
+            // Stagger slightly for richness
+            const noteStart = chordStart + index * 0.03;
+            gain.gain.setValueAtTime(0, noteStart);
+            gain.gain.linearRampToValueAtTime(0.25, noteStart + 0.05);
+            gain.gain.setValueAtTime(0.25, noteStart + 1.0);
+            gain.gain.exponentialRampToValueAtTime(0.01, noteStart + 1.8);
+
+            osc.start(noteStart);
+            osc.stop(noteStart + 2);
+        });
+
+        // Add sparkle effects
+        for (let i = 0; i < 5; i++) {
+            this.playSparkle(now + 1.3 + i * 0.2);
+        }
+    }
+
     // ============================================
     // BACKGROUND MUSIC
     // ============================================
