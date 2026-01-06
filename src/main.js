@@ -343,6 +343,34 @@ const TOTAL_CLOVERS = 13;
 let gameWon = false;
 let gameStartTime = 0;
 
+// ============================================
+// DIFFICULTY & PROGRESSION SYSTEM
+// ============================================
+
+// Difficulty state
+let currentLevel = 1;
+const MAX_LEVEL = 5;
+const CLOVERS_PER_LEVEL = 3; // Every 3 clovers = level up
+
+// Enemy scaling per level
+const DIFFICULTY_SETTINGS = {
+    1: { enemySpeed: 0.04, maxEnemies: 3, spawnRate: 0 },
+    2: { enemySpeed: 0.05, maxEnemies: 4, spawnRate: 15000 },
+    3: { enemySpeed: 0.06, maxEnemies: 5, spawnRate: 12000 },
+    4: { enemySpeed: 0.07, maxEnemies: 6, spawnRate: 10000 },
+    5: { enemySpeed: 0.08, maxEnemies: 8, spawnRate: 8000 }
+};
+
+// Combo system state
+let comboCount = 0;
+let comboMultiplier = 1;
+let lastCollectTime = 0;
+const COMBO_WINDOW = 3000; // 3 seconds to maintain combo
+const MAX_COMBO_MULTIPLIER = 5;
+
+// Spawn timer for new enemies
+let lastEnemySpawnTime = 0;
+
 // Create a single clover leaf (heart shape)
 function createCloverLeaf() {
     const shape = new THREE.Shape();
@@ -465,12 +493,29 @@ function checkCloverCollision() {
 function collectClover(clover) {
     if (clover.userData.collected) return;
 
+    const currentTime = performance.now();
     clover.userData.collected = true;
     cloversCollected++;
 
-    // Four-leaf clovers worth more
-    const points = clover.userData.isFourLeaf ? 25 : 10;
+    // Update combo system
+    if (currentTime - lastCollectTime < COMBO_WINDOW) {
+        comboCount++;
+        comboMultiplier = Math.min(MAX_COMBO_MULTIPLIER, 1 + Math.floor(comboCount / 2));
+    } else {
+        comboCount = 1;
+        comboMultiplier = 1;
+    }
+    lastCollectTime = currentTime;
+
+    // Four-leaf clovers worth more, apply combo multiplier
+    const basePoints = clover.userData.isFourLeaf ? 25 : 10;
+    const points = basePoints * comboMultiplier;
     score += points;
+
+    // Show combo popup if multiplier > 1
+    if (comboMultiplier > 1) {
+        showComboPopup(comboMultiplier, points);
+    }
 
     // Play collection sound
     audioManager.playCloverCollect(clover.userData.isFourLeaf);
@@ -478,6 +523,10 @@ function collectClover(clover) {
     // Update score display
     updateScoreDisplay();
     updateCloverCountDisplay();
+    updateComboDisplay();
+
+    // Check for level up
+    checkLevelUp();
 
     // Animate collection (scale down and fade)
     animateCollection(clover);
@@ -486,6 +535,77 @@ function collectClover(clover) {
     if (cloversCollected >= TOTAL_CLOVERS) {
         victory();
     }
+}
+
+// Check and handle level up
+function checkLevelUp() {
+    const newLevel = Math.min(MAX_LEVEL, Math.floor(cloversCollected / CLOVERS_PER_LEVEL) + 1);
+
+    if (newLevel > currentLevel) {
+        currentLevel = newLevel;
+        updateLevelDisplay();
+        showLevelUpPopup();
+
+        // Apply new difficulty settings
+        applyDifficultySettings();
+    }
+}
+
+// Apply difficulty settings for current level
+function applyDifficultySettings() {
+    const settings = DIFFICULTY_SETTINGS[currentLevel];
+
+    // Spawn additional enemies if needed
+    const enemiesToSpawn = settings.maxEnemies - enemies.length;
+    for (let i = 0; i < enemiesToSpawn; i++) {
+        setTimeout(() => spawnEnemy(), i * 500); // Stagger spawns
+    }
+}
+
+// Show combo popup
+function showComboPopup(multiplier, points) {
+    const popup = document.createElement('div');
+    popup.className = 'combo-popup';
+    popup.innerHTML = `
+        <div class="combo-multiplier">x${multiplier} COMBO!</div>
+        <div class="combo-points">+${points}</div>
+    `;
+    popup.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 500;
+        text-align: center;
+        pointer-events: none;
+        animation: comboFade 1s ease-out forwards;
+    `;
+    document.body.appendChild(popup);
+
+    setTimeout(() => popup.remove(), 1000);
+}
+
+// Show level up popup
+function showLevelUpPopup() {
+    const popup = document.createElement('div');
+    popup.className = 'levelup-popup';
+    popup.innerHTML = `
+        <div class="levelup-text">LEVEL ${currentLevel}!</div>
+        <div class="levelup-warning">Enemies are getting stronger!</div>
+    `;
+    popup.style.cssText = `
+        position: fixed;
+        top: 30%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 500;
+        text-align: center;
+        pointer-events: none;
+        animation: levelUpFade 2s ease-out forwards;
+    `;
+    document.body.appendChild(popup);
+
+    setTimeout(() => popup.remove(), 2000);
 }
 
 // Collection animation
@@ -531,6 +651,41 @@ function updateCloverCountDisplay() {
     const cloverCountElement = document.getElementById('clover-count');
     if (cloverCountElement) {
         cloverCountElement.textContent = `Clovers: ${cloversCollected}/${TOTAL_CLOVERS}`;
+    }
+}
+
+// Update combo display in UI
+function updateComboDisplay() {
+    const comboElement = document.getElementById('combo-display');
+    if (comboElement) {
+        if (comboMultiplier > 1) {
+            comboElement.textContent = `x${comboMultiplier} Combo`;
+            comboElement.classList.add('active');
+        } else {
+            comboElement.textContent = '';
+            comboElement.classList.remove('active');
+        }
+    }
+}
+
+// Update level display in UI
+function updateLevelDisplay() {
+    const levelElement = document.getElementById('level-display');
+    if (levelElement) {
+        levelElement.textContent = `Level ${currentLevel}`;
+        // Flash animation on level up
+        levelElement.classList.remove('level-up');
+        void levelElement.offsetWidth; // Force reflow
+        levelElement.classList.add('level-up');
+    }
+}
+
+// Reset combo if timer expires
+function updateComboTimer(currentTime) {
+    if (comboMultiplier > 1 && currentTime - lastCollectTime > COMBO_WINDOW) {
+        comboCount = 0;
+        comboMultiplier = 1;
+        updateComboDisplay();
     }
 }
 
@@ -753,6 +908,10 @@ function showVictoryScreen(timeString) {
                 <div class="stat-label">CLOVERS</div>
                 <div class="stat-value">${cloversCollected}/${TOTAL_CLOVERS}</div>
             </div>
+            <div class="stat">
+                <div class="stat-label">DIFFICULTY</div>
+                <div class="stat-value" style="color: #9933ff;">Level ${currentLevel}</div>
+            </div>
         </div>
         <div>
             <button onclick="location.reload()">Play Again</button>
@@ -790,8 +949,13 @@ let lastDamageTime = 0;
 // Enemy state
 const enemies = [];
 const ENEMY_COUNT = 3;
-const ENEMY_SPEED = 0.04;
+const BASE_ENEMY_SPEED = 0.04;
 const ENEMY_COLLISION_RADIUS = 1.5;
+
+// Flying bee enemies
+const bees = [];
+const BEE_SPEED = 0.06;
+const BEE_COLLISION_RADIUS = 1.2;
 
 // Create enemy ant (similar to player bug but red)
 function createEnemyAnt() {
@@ -929,7 +1093,10 @@ function initEnemies() {
 }
 
 // Update enemy AI - chase the player
-function updateEnemies(deltaTime) {
+function updateEnemies(deltaTime, currentTime) {
+    const settings = DIFFICULTY_SETTINGS[currentLevel];
+    const currentSpeed = settings.enemySpeed;
+
     enemies.forEach(enemy => {
         // Direction to player
         const direction = new THREE.Vector3();
@@ -939,9 +1106,9 @@ function updateEnemies(deltaTime) {
         if (direction.length() > 0.1) {
             direction.normalize();
 
-            // Move toward player
-            enemy.position.x += direction.x * ENEMY_SPEED;
-            enemy.position.z += direction.z * ENEMY_SPEED;
+            // Move toward player (speed scales with difficulty)
+            enemy.position.x += direction.x * currentSpeed;
+            enemy.position.z += direction.z * currentSpeed;
 
             // Rotate to face player
             const targetRotation = Math.atan2(direction.x, direction.z);
@@ -961,20 +1128,215 @@ function updateEnemies(deltaTime) {
         enemy.position.x = Math.max(-48, Math.min(48, enemy.position.x));
         enemy.position.z = Math.max(-48, Math.min(48, enemy.position.z));
     });
+
+    // Periodic enemy spawning based on difficulty
+    if (settings.spawnRate > 0 && currentTime - lastEnemySpawnTime > settings.spawnRate) {
+        if (enemies.length < settings.maxEnemies) {
+            spawnEnemy();
+            lastEnemySpawnTime = currentTime;
+        }
+    }
 }
 
-// Check collision between player and enemies
+// ============================================
+// FLYING BEE ENEMIES
+// ============================================
+
+// Create a flying bee enemy (yellow/black, flies above ground)
+function createBee() {
+    const beeGroup = new THREE.Group();
+
+    // Body (oval shape) - yellow with black stripes
+    const bodyGeometry = new THREE.SphereGeometry(0.4, 16, 12);
+    bodyGeometry.scale(1, 0.8, 1.4);
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffcc00, // Yellow
+        roughness: 0.4,
+        metalness: 0.1
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.position.y = 0;
+    body.castShadow = true;
+    beeGroup.add(body);
+
+    // Black stripes on body
+    const stripeGeometry = new THREE.TorusGeometry(0.38, 0.06, 8, 16);
+    const stripeMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+    [-0.15, 0.05, 0.25].forEach(zPos => {
+        const stripe = new THREE.Mesh(stripeGeometry, stripeMaterial);
+        stripe.position.set(0, 0, zPos);
+        stripe.rotation.y = Math.PI / 2;
+        beeGroup.add(stripe);
+    });
+
+    // Head - black
+    const headGeometry = new THREE.SphereGeometry(0.25, 12, 10);
+    const headMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.set(0, 0.05, 0.55);
+    head.castShadow = true;
+    beeGroup.add(head);
+
+    // Eyes (two red spheres)
+    const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 6);
+    const eyeMaterial = new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        emissive: 0x440000,
+        emissiveIntensity: 0.3
+    });
+
+    [-0.12, 0.12].forEach(xOffset => {
+        const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        eye.position.set(xOffset, 0.1, 0.72);
+        beeGroup.add(eye);
+    });
+
+    // Stinger
+    const stingerGeometry = new THREE.ConeGeometry(0.05, 0.3, 6);
+    const stingerMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const stinger = new THREE.Mesh(stingerGeometry, stingerMaterial);
+    stinger.position.set(0, 0, -0.55);
+    stinger.rotation.x = Math.PI / 2;
+    beeGroup.add(stinger);
+
+    // Wings (translucent)
+    const wingGeometry = new THREE.PlaneGeometry(0.6, 0.3);
+    const wingMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.5,
+        side: THREE.DoubleSide
+    });
+
+    [-0.3, 0.3].forEach((xOffset, i) => {
+        const wing = new THREE.Mesh(wingGeometry, wingMaterial);
+        wing.position.set(xOffset, 0.2, 0);
+        wing.rotation.x = Math.PI / 2;
+        wing.rotation.z = xOffset > 0 ? 0.3 : -0.3;
+        wing.userData.wingIndex = i;
+        beeGroup.add(wing);
+    });
+
+    // Store wing references for animation
+    beeGroup.userData.wings = beeGroup.children.filter(child => child.userData.wingIndex !== undefined);
+    beeGroup.userData.wingTime = Math.random() * Math.PI * 2;
+
+    return beeGroup;
+}
+
+// Spawn a bee at a random position
+function spawnBee() {
+    const bee = createBee();
+
+    // Spawn at random edge, elevated
+    const edge = Math.floor(Math.random() * 4);
+    const offset = Math.random() * 60 - 30;
+    const height = 2 + Math.random() * 2; // Fly 2-4 units high
+
+    switch(edge) {
+        case 0: bee.position.set(offset, height, -45); break;
+        case 1: bee.position.set(offset, height, 45); break;
+        case 2: bee.position.set(45, height, offset); break;
+        case 3: bee.position.set(-45, height, offset); break;
+    }
+
+    // Movement pattern data
+    bee.userData.isBee = true;
+    bee.userData.baseHeight = height;
+    bee.userData.phase = Math.random() * Math.PI * 2;
+    bee.userData.circleAngle = Math.random() * Math.PI * 2;
+    bee.userData.diveBombCooldown = 0;
+
+    scene.add(bee);
+    bees.push(bee);
+
+    return bee;
+}
+
+// Update bee AI - circle around and occasionally dive bomb
+function updateBees(deltaTime, currentTime) {
+    bees.forEach(bee => {
+        const distToPlayer = bee.position.distanceTo(playerBug.position);
+
+        // Wing animation (always)
+        bee.userData.wingTime += deltaTime * 0.05;
+        bee.userData.wings.forEach((wing, i) => {
+            const flap = Math.sin(bee.userData.wingTime * 20) * 0.5;
+            wing.rotation.z = (i === 0 ? -0.3 : 0.3) + flap;
+        });
+
+        // Bobbing motion
+        const bob = Math.sin(currentTime * 0.003 + bee.userData.phase) * 0.3;
+        bee.position.y = bee.userData.baseHeight + bob;
+
+        // Circle toward player
+        const dirToPlayer = new THREE.Vector3();
+        dirToPlayer.subVectors(playerBug.position, bee.position);
+        dirToPlayer.y = 0;
+
+        if (dirToPlayer.length() > 3) {
+            // Move toward player in a circling pattern
+            bee.userData.circleAngle += deltaTime * 0.002;
+            const circleOffset = new THREE.Vector3(
+                Math.cos(bee.userData.circleAngle) * 0.5,
+                0,
+                Math.sin(bee.userData.circleAngle) * 0.5
+            );
+
+            dirToPlayer.normalize();
+            dirToPlayer.add(circleOffset);
+            dirToPlayer.normalize();
+
+            bee.position.x += dirToPlayer.x * BEE_SPEED;
+            bee.position.z += dirToPlayer.z * BEE_SPEED;
+        }
+
+        // Face movement direction
+        if (dirToPlayer.length() > 0.1) {
+            const targetRotation = Math.atan2(dirToPlayer.x, dirToPlayer.z);
+            bee.rotation.y = targetRotation;
+        }
+
+        // Keep bees within boundaries
+        bee.position.x = Math.max(-48, Math.min(48, bee.position.x));
+        bee.position.z = Math.max(-48, Math.min(48, bee.position.z));
+    });
+}
+
+// Spawn bees at higher difficulty levels
+function checkBeeSpawn(currentTime) {
+    // Bees only appear at level 3+
+    if (currentLevel >= 3 && bees.length < currentLevel - 1) {
+        // Chance to spawn bee every 20 seconds
+        if (Math.random() < 0.001) {
+            spawnBee();
+        }
+    }
+}
+
+// Check collision between player and enemies (including bees)
 function checkEnemyCollision(currentTime) {
     // Check if player is still in invincibility period
     if (currentTime - lastDamageTime < DAMAGE_COOLDOWN) {
         return;
     }
 
+    // Check ant collisions
     enemies.forEach(enemy => {
         const distance = playerBug.position.distanceTo(enemy.position);
 
         if (distance < ENEMY_COLLISION_RADIUS) {
             // Take damage!
+            takeDamage(currentTime);
+        }
+    });
+
+    // Check bee collisions
+    bees.forEach(bee => {
+        const distance = playerBug.position.distanceTo(bee.position);
+
+        if (distance < BEE_COLLISION_RADIUS) {
             takeDamage(currentTime);
         }
     });
@@ -1141,9 +1503,10 @@ function gameOver() {
         color: white;
         font-family: Arial, sans-serif;
     `;
+    const enemyMsg = bees.length > 0 ? 'The bugs got you!' : 'The ants got you!';
     overlay.innerHTML = `
         <h1 style="font-size: 72px; color: #cc2222; margin-bottom: 10px;">GAME OVER</h1>
-        <p style="font-size: 18px; color: #888; margin-bottom: 30px;">The ants got you!</p>
+        <p style="font-size: 18px; color: #888; margin-bottom: 30px;">${enemyMsg}</p>
         <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
             <div class="stat-box">
                 <div class="stat-label">FINAL SCORE</div>
@@ -1156,6 +1519,10 @@ function gameOver() {
             <div class="stat-box">
                 <div class="stat-label">CLOVERS</div>
                 <div class="stat-value">${cloversCollected}/${TOTAL_CLOVERS}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">LEVEL</div>
+                <div class="stat-value" style="color: #9933ff;">${currentLevel}</div>
             </div>
         </div>
         <button onclick="location.reload()">Try Again</button>
@@ -1292,10 +1659,14 @@ function animate(currentTime) {
     }
 
     // Update enemy ants (only if game not won)
-    if (!gameWon) {
-        updateEnemies(deltaTime);
+    if (!gameWon && !gameOverTriggered) {
+        updateEnemies(deltaTime, currentTime);
+        updateBees(deltaTime, currentTime);
+        checkBeeSpawn(currentTime);
         // Check for enemy collision
         checkEnemyCollision(currentTime);
+        // Update combo timer
+        updateComboTimer(currentTime);
     }
 
     // Update confetti particles
@@ -1369,4 +1740,4 @@ if (sfxVolume) {
 animate(0);
 
 // Export scene for testing
-export { scene, camera, renderer, score, clovers, playerBug, enemies, playerHealth, MAX_HEALTH, audioManager, cloversCollected, TOTAL_CLOVERS, gameWon, gameOverTriggered };
+export { scene, camera, renderer, score, clovers, playerBug, enemies, bees, playerHealth, MAX_HEALTH, audioManager, cloversCollected, TOTAL_CLOVERS, gameWon, gameOverTriggered, currentLevel, comboMultiplier };

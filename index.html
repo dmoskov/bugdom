@@ -184,21 +184,112 @@
         .hidden {
             display: none !important;
         }
+        /* Level display */
+        #level-display {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            color: white;
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8));
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease;
+        }
+        #level-display.level-up {
+            animation: levelUpPulse 0.5s ease-out;
+        }
+        @keyframes levelUpPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        /* Combo display */
+        #combo-display {
+            position: absolute;
+            top: 115px;
+            right: 10px;
+            color: #ffcc00;
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.9), rgba(255, 69, 0, 0.9));
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #combo-display.active {
+            opacity: 1;
+            animation: comboPulse 0.3s ease-out;
+        }
+        @keyframes comboPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        /* Combo popup styles */
+        @keyframes comboFade {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -70%) scale(1); opacity: 0; }
+        }
+        .combo-popup .combo-multiplier {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 200, 0, 0.5);
+        }
+        .combo-popup .combo-points {
+            font-size: 32px;
+            color: #00ff00;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        /* Level up popup styles */
+        @keyframes levelUpFade {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+            15% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            85% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        }
+        .levelup-popup .levelup-text {
+            font-size: 56px;
+            font-weight: bold;
+            color: #9933ff;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5), 0 0 30px rgba(153, 51, 255, 0.6);
+        }
+        .levelup-popup .levelup-warning {
+            font-size: 22px;
+            color: #ff6666;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <div id="start-overlay">
         <h1>BUGDOM</h1>
-        <p>Collect clovers and avoid the ants!<br>Use WASD or Arrow keys to move</p>
+        <p>Collect all 13 clovers to win!<br>
+        Avoid enemy ants and bees!<br>
+        <span style="color: #ffcc00;">Collect quickly for COMBO bonuses!</span><br>
+        Use WASD or Arrow keys to move</p>
         <button id="start-button">Click to Start</button>
     </div>
     <div id="info">
-        <strong>Bugdom - Level 1 Test Terrain</strong><br>
-        W/Up: Move forward | S/Down: Move backward<br>
+        <strong>Bugdom</strong><br>
+        W/Up: Forward | S/Down: Backward<br>
         A/Left: Turn left | D/Right: Turn right<br>
-        Collect clovers! Avoid enemy ants!
+        Collect clovers fast for combos!
     </div>
     <div id="clover-count">Clovers: 0/13</div>
+    <div id="level-display">Level 1</div>
+    <div id="combo-display"></div>
     <div id="health-container">
         <div id="health-label">HEALTH</div>
         <div id="health-bar-wrapper">
