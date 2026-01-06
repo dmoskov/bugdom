@@ -1,0 +1,104 @@
+BUGDOM LEVEL 1 - TERRAIN LAYOUT
+================================
+
+Top-Down View (100x100 units terrain):
+
+                   NORTH
+        +-------------------------------+
+        |   F   F   F   F   F   F   F   |
+        | F                           F |
+        |           🌸                  |
+        |                               |
+        |    ⬤        🌸         ⬤      |
+        |                               |
+        | F    🌸           ⬤           F |
+        |                               |
+  WEST  |        ⬤     🌸               | EAST
+        |                        🌸     |
+        | F           ⬤                F |
+        |    🌸                         |
+        |               ⬤         ⬤    |
+        |         🌸                    |
+        | F                           F |
+        |   F   F   F   F   F   F   F   |
+        +-------------------------------+
+                   SOUTH
+
+LEGEND:
+  ⬤  = Rock obstacle (7 total, sizes 1.4-2.2 units)
+  🌸 = Flower (8 total, pink/yellow/orange)
+  F  = Fence post (boundary marker)
+  +  = Corner boundary
+
+TERRAIN FEATURES:
+─────────────────
+
+Ground Plane:
+  • Size: 100x100 units
+  • Color: Grass green (#4a9d2e)
+  • Vertex displacement: ±0.3 units for natural look
+  • 20 darker grass patches randomly scattered
+  • Receives shadows
+
+Rocks (Obstacles):
+  • 7 dodecahedron shapes
+  • Sizes: 1.4 to 2.2 units
+  • Color: Gray (#808080)
+  • Randomized rotation and shape variation
+  • Cast and receive shadows
+  • Tagged with userData.obstacle = true
+
+Flowers:
+  • 8 flowers with stems and petals
+  • Stem: Green cylinder, 0.05 radius, 1 unit tall
+  • Petals: 6 spherical petals arranged in circle
+  • Colors: Pink (#ff69b4), Yellow (#ffff00), Orange (#ffa500)
+  • Center: Yellow sphere
+  • Tagged with userData.obstacle = true
+
+Boundaries:
+  • Invisible walls at ±50 units (N/S/E/W)
+  • Fence posts every 10 units as visual markers
+  • Brown wooden posts (#8b4513), 0.2 radius, 2 units tall
+  • Camera movement clamped to ±45 units
+
+LIGHTING SETUP:
+───────────────
+  • Ambient: 0.6 intensity, white
+  • Directional: 0.8 intensity, from (50, 50, 50)
+  • Shadow mapping enabled (2048x2048)
+  • Sky blue background (#87ceeb) with fog
+
+CAMERA & CONTROLS:
+──────────────────
+  • PerspectiveCamera, 75° FOV
+  • Starting position: (0, 5, 10)
+  • Movement: WASD or Arrow Keys (0.2 units/frame)
+  • Look: Mouse movement
+  • Rotation limits: ±45° vertical
+  • Boundary: Stays within ±45 units
+
+FILE STRUCTURE:
+───────────────
+  /index.html         - Entry point with UI overlay
+  /src/main.js        - Main Three.js scene (350+ lines)
+  /package.json       - Dependencies (three@0.160.0, vite@5.0.0)
+  /vite.config.js     - Dev server config
+  /README.md          - Documentation
+
+TESTING READY FOR:
+──────────────────
+  ✓ Player movement in 3D space
+  ✓ Obstacle collision detection (rocks, flowers marked)
+  ✓ Boundary constraints
+  ✓ Camera controls and viewport
+  ✓ Shadow rendering
+  ✓ Scene performance
+
+NEXT STEPS:
+───────────
+  • Add player character model
+  • Implement physics-based collision detection
+  • Add more detailed grass/rock textures
+  • Implement sound effects
+  • Add particle effects (grass movement, etc.)
