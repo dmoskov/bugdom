@@ -736,6 +736,9 @@ function takeDamage(currentTime) {
     lastDamageTime = currentTime;
     playerHealth = Math.max(0, playerHealth - DAMAGE_PER_HIT);
 
+    // Play damage sound
+    audioManager.playAntHit();
+
     // Update health display
     updateHealthDisplay();
 
@@ -792,6 +795,9 @@ function updateHealthDisplay() {
 
 // Game over handler
 function gameOver() {
+    // Play game over sound (also stops music)
+    audioManager.playGameOver();
+
     // Create game over overlay
     const overlay = document.createElement('div');
     overlay.id = 'game-over';
