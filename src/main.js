@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { audioManager } from './audio.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -464,6 +465,9 @@ function collectClover(clover) {
     const points = clover.userData.isFourLeaf ? 25 : 10;
     score += points;
 
+    // Play collection sound
+    audioManager.playCloverCollect(clover.userData.isFourLeaf);
+
     // Update score display
     updateScoreDisplay();
 
@@ -522,6 +526,308 @@ function animateClovers(time) {
         clover.rotation.y += clover.userData.rotationSpeed;
     });
 }
+
+// ============================================
+// ENEMY ANTS
+// ============================================
+
+// Player health state
+let playerHealth = 100;
+const MAX_HEALTH = 100;
+const DAMAGE_PER_HIT = 10;
+const DAMAGE_COOLDOWN = 1000; // 1 second invincibility after being hit
+let lastDamageTime = 0;
+
+// Enemy state
+const enemies = [];
+const ENEMY_COUNT = 3;
+const ENEMY_SPEED = 0.04;
+const ENEMY_COLLISION_RADIUS = 1.5;
+
+// Create enemy ant (similar to player bug but red)
+function createEnemyAnt() {
+    const antGroup = new THREE.Group();
+
+    // Body (main ellipsoid sphere) - RED
+    const bodyGeometry = new THREE.SphereGeometry(0.5, 16, 12);
+    bodyGeometry.scale(1, 0.6, 1.3);
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: 0xcc2222, // Red
+        roughness: 0.5,
+        metalness: 0.1
+    });
+    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    body.position.y = 0.4;
+    body.castShadow = true;
+    antGroup.add(body);
+
+    // Head (smaller sphere) - Darker red
+    const headGeometry = new THREE.SphereGeometry(0.3, 12, 10);
+    const headMaterial = new THREE.MeshStandardMaterial({
+        color: 0x991111, // Darker red
+        roughness: 0.4,
+        metalness: 0.1
+    });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.set(0, 0.5, 0.6);
+    head.castShadow = true;
+    antGroup.add(head);
+
+    // Eyes (two small black spheres)
+    const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 6);
+    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+
+    [-0.12, 0.12].forEach(xOffset => {
+        const eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        eye.position.set(xOffset, 0.55, 0.85);
+        antGroup.add(eye);
+    });
+
+    // Mandibles (two small cone shapes)
+    const mandibleGeometry = new THREE.ConeGeometry(0.06, 0.2, 6);
+    const mandibleMaterial = new THREE.MeshStandardMaterial({ color: 0x661111 });
+
+    [-0.1, 0.1].forEach((xOffset, i) => {
+        const mandible = new THREE.Mesh(mandibleGeometry, mandibleMaterial);
+        mandible.position.set(xOffset, 0.4, 0.9);
+        mandible.rotation.x = Math.PI / 2;
+        mandible.rotation.z = xOffset > 0 ? 0.3 : -0.3;
+        antGroup.add(mandible);
+    });
+
+    // Antennae
+    const antennaGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.35, 6);
+    const antennaMaterial = new THREE.MeshStandardMaterial({ color: 0x661111 });
+    const antennaTipGeometry = new THREE.SphereGeometry(0.04, 6, 4);
+
+    [-0.1, 0.1].forEach((xOffset, i) => {
+        const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
+        antenna.position.set(xOffset, 0.85, 0.7);
+        antenna.rotation.x = Math.PI / 6;
+        antenna.rotation.z = xOffset > 0 ? -0.3 : 0.3;
+        antGroup.add(antenna);
+
+        const tip = new THREE.Mesh(antennaTipGeometry, antennaMaterial);
+        tip.position.set(xOffset * 1.3, 0.98, 0.82);
+        antGroup.add(tip);
+    });
+
+    // Legs (6 legs - 3 on each side)
+    const legGeometry = new THREE.CylinderGeometry(0.025, 0.015, 0.45, 6);
+    const legMaterial = new THREE.MeshStandardMaterial({ color: 0x661111 });
+
+    const legPositions = [
+        { x: -0.35, z: 0.25, rotZ: 0.8 },   // Front left
+        { x: 0.35, z: 0.25, rotZ: -0.8 },   // Front right
+        { x: -0.42, z: 0, rotZ: 1.0 },      // Middle left
+        { x: 0.42, z: 0, rotZ: -1.0 },      // Middle right
+        { x: -0.35, z: -0.25, rotZ: 0.8 },  // Back left
+        { x: 0.35, z: -0.25, rotZ: -0.8 }   // Back right
+    ];
+
+    legPositions.forEach((pos, index) => {
+        const leg = new THREE.Mesh(legGeometry, legMaterial);
+        leg.position.set(pos.x, 0.25, pos.z);
+        leg.rotation.z = pos.rotZ;
+        leg.rotation.x = 0.2;
+        leg.castShadow = true;
+        leg.userData.legIndex = index;
+        antGroup.add(leg);
+    });
+
+    // Store reference to legs for animation
+    antGroup.userData.legs = antGroup.children.filter(child => child.userData.legIndex !== undefined);
+    antGroup.userData.legAnimationTime = Math.random() * Math.PI * 2;
+
+    return antGroup;
+}
+
+// Spawn an enemy at a random edge position
+function spawnEnemy() {
+    const enemy = createEnemyAnt();
+
+    // Spawn at random edge (outside boundary but within view)
+    const edge = Math.floor(Math.random() * 4);
+    const offset = Math.random() * 80 - 40;
+
+    switch(edge) {
+        case 0: // North
+            enemy.position.set(offset, 0, -45);
+            break;
+        case 1: // South
+            enemy.position.set(offset, 0, 45);
+            break;
+        case 2: // East
+            enemy.position.set(45, 0, offset);
+            break;
+        case 3: // West
+            enemy.position.set(-45, 0, offset);
+            break;
+    }
+
+    enemy.userData.isEnemy = true;
+    scene.add(enemy);
+    enemies.push(enemy);
+
+    return enemy;
+}
+
+// Initialize enemies
+function initEnemies() {
+    for (let i = 0; i < ENEMY_COUNT; i++) {
+        spawnEnemy();
+    }
+}
+
+// Update enemy AI - chase the player
+function updateEnemies(deltaTime) {
+    enemies.forEach(enemy => {
+        // Direction to player
+        const direction = new THREE.Vector3();
+        direction.subVectors(playerBug.position, enemy.position);
+        direction.y = 0; // Keep on ground
+
+        if (direction.length() > 0.1) {
+            direction.normalize();
+
+            // Move toward player
+            enemy.position.x += direction.x * ENEMY_SPEED;
+            enemy.position.z += direction.z * ENEMY_SPEED;
+
+            // Rotate to face player
+            const targetRotation = Math.atan2(direction.x, direction.z);
+            enemy.rotation.y = targetRotation;
+
+            // Animate legs
+            enemy.userData.legAnimationTime += deltaTime * 0.012;
+            const legs = enemy.userData.legs;
+            legs.forEach((leg, index) => {
+                const phase = index % 2 === 0 ? 0 : Math.PI;
+                const swing = Math.sin(enemy.userData.legAnimationTime * 8 + phase) * 0.25;
+                leg.rotation.x = 0.2 + swing;
+            });
+        }
+
+        // Keep enemies within boundaries
+        enemy.position.x = Math.max(-48, Math.min(48, enemy.position.x));
+        enemy.position.z = Math.max(-48, Math.min(48, enemy.position.z));
+    });
+}
+
+// Check collision between player and enemies
+function checkEnemyCollision(currentTime) {
+    // Check if player is still in invincibility period
+    if (currentTime - lastDamageTime < DAMAGE_COOLDOWN) {
+        return;
+    }
+
+    enemies.forEach(enemy => {
+        const distance = playerBug.position.distanceTo(enemy.position);
+
+        if (distance < ENEMY_COLLISION_RADIUS) {
+            // Take damage!
+            takeDamage(currentTime);
+        }
+    });
+}
+
+// Handle player taking damage
+function takeDamage(currentTime) {
+    lastDamageTime = currentTime;
+    playerHealth = Math.max(0, playerHealth - DAMAGE_PER_HIT);
+
+    // Update health display
+    updateHealthDisplay();
+
+    // Flash the player red briefly
+    flashPlayer();
+
+    // Check for game over
+    if (playerHealth <= 0) {
+        gameOver();
+    }
+}
+
+// Flash player red when hit
+function flashPlayer() {
+    const originalColors = [];
+
+    // Store original colors and set to red
+    playerBug.traverse(child => {
+        if (child.isMesh && child.material) {
+            originalColors.push({
+                mesh: child,
+                color: child.material.color.getHex()
+            });
+            child.material.color.setHex(0xff0000);
+        }
+    });
+
+    // Restore after 200ms
+    setTimeout(() => {
+        originalColors.forEach(item => {
+            if (item.mesh.material) {
+                item.mesh.material.color.setHex(item.color);
+            }
+        });
+    }, 200);
+}
+
+// Update health display in UI
+function updateHealthDisplay() {
+    const healthElement = document.getElementById('health');
+    if (healthElement) {
+        healthElement.textContent = `Health: ${playerHealth}`;
+
+        // Change color based on health level
+        if (playerHealth > 60) {
+            healthElement.style.background = 'linear-gradient(135deg, rgba(34, 139, 34, 0.8), rgba(0, 100, 0, 0.8))';
+        } else if (playerHealth > 30) {
+            healthElement.style.background = 'linear-gradient(135deg, rgba(255, 165, 0, 0.8), rgba(200, 120, 0, 0.8))';
+        } else {
+            healthElement.style.background = 'linear-gradient(135deg, rgba(220, 20, 20, 0.8), rgba(150, 0, 0, 0.8))';
+        }
+    }
+}
+
+// Game over handler
+function gameOver() {
+    // Create game over overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'game-over';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        color: white;
+        font-family: Arial, sans-serif;
+    `;
+    overlay.innerHTML = `
+        <h1 style="font-size: 64px; color: #cc2222; margin-bottom: 20px;">GAME OVER</h1>
+        <p style="font-size: 24px; margin-bottom: 30px;">Final Score: ${score}</p>
+        <button onclick="location.reload()" style="
+            padding: 15px 40px;
+            font-size: 20px;
+            background: #228b22;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        ">Play Again</button>
+    `;
+    document.body.appendChild(overlay);
+}
+
+// Initialize enemies when game starts
+initEnemies();
 
 // ============================================
 // PLAYER CONTROLS
@@ -646,6 +952,12 @@ function animate(currentTime) {
     // Check for clover collection
     checkCloverCollision();
 
+    // Update enemy ants
+    updateEnemies(deltaTime);
+
+    // Check for enemy collision
+    checkEnemyCollision(currentTime);
+
     renderer.render(scene, camera);
 }
 
@@ -656,8 +968,60 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+// ============================================
+// AUDIO INITIALIZATION & CONTROLS
+// ============================================
+
+// Game started flag (for audio unlock)
+let gameStarted = false;
+
+// Initialize audio on start button click (handles browser autoplay restriction)
+function initAudio() {
+    if (audioManager.init()) {
+        audioManager.resume();
+        audioManager.startMusic();
+    }
+}
+
+// Start button click handler
+const startButton = document.getElementById('start-button');
+const startOverlay = document.getElementById('start-overlay');
+
+if (startButton && startOverlay) {
+    startButton.addEventListener('click', () => {
+        gameStarted = true;
+        startOverlay.classList.add('hidden');
+        initAudio();
+    });
+}
+
+// Audio control event listeners
+const muteBtn = document.getElementById('mute-btn');
+const musicVolume = document.getElementById('music-volume');
+const sfxVolume = document.getElementById('sfx-volume');
+
+if (muteBtn) {
+    muteBtn.addEventListener('click', () => {
+        const isMuted = audioManager.toggleMute();
+        muteBtn.textContent = isMuted ? '🔇' : '🔊';
+        muteBtn.classList.toggle('muted', isMuted);
+    });
+}
+
+if (musicVolume) {
+    musicVolume.addEventListener('input', (e) => {
+        audioManager.setMusicVolume(e.target.value / 100);
+    });
+}
+
+if (sfxVolume) {
+    sfxVolume.addEventListener('input', (e) => {
+        audioManager.setSfxVolume(e.target.value / 100);
+    });
+}
+
 // Start animation
 animate(0);
 
 // Export scene for testing
-export { scene, camera, renderer, score, clovers, playerBug };
+export { scene, camera, renderer, score, clovers, playerBug, enemies, playerHealth, audioManager };
