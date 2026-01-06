@@ -1628,6 +1628,94 @@ function updateCamera() {
 }
 
 // ============================================
+// MINIMAP SYSTEM
+// ============================================
+
+const minimapCanvas = document.getElementById('minimap');
+const minimapCtx = minimapCanvas ? minimapCanvas.getContext('2d') : null;
+const MINIMAP_SIZE = 150;
+const WORLD_SIZE = 100; // -50 to 50 in game units
+const MINIMAP_SCALE = MINIMAP_SIZE / WORLD_SIZE;
+
+// Convert world coordinates to minimap coordinates
+function worldToMinimap(worldX, worldZ) {
+    const minimapX = (worldX + WORLD_SIZE / 2) * MINIMAP_SCALE;
+    const minimapY = (worldZ + WORLD_SIZE / 2) * MINIMAP_SCALE;
+    return { x: minimapX, y: minimapY };
+}
+
+// Draw the minimap
+function drawMinimap() {
+    if (!minimapCtx) return;
+
+    // Clear the canvas with semi-transparent background
+    minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    minimapCtx.fillRect(0, 0, MINIMAP_SIZE, MINIMAP_SIZE);
+
+    // Draw boundary outline
+    minimapCtx.strokeStyle = 'rgba(139, 69, 19, 0.5)';
+    minimapCtx.lineWidth = 2;
+    const boundaryPadding = 5 * MINIMAP_SCALE;
+    minimapCtx.strokeRect(
+        boundaryPadding,
+        boundaryPadding,
+        MINIMAP_SIZE - boundaryPadding * 2,
+        MINIMAP_SIZE - boundaryPadding * 2
+    );
+
+    // Draw uncollected clovers as yellow dots
+    minimapCtx.fillStyle = '#ffcc00';
+    clovers.forEach(clover => {
+        if (!clover.userData.collected) {
+            const pos = worldToMinimap(clover.position.x, clover.position.z);
+            minimapCtx.beginPath();
+            minimapCtx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+            minimapCtx.fill();
+        }
+    });
+
+    // Draw enemies (ants) as red dots
+    minimapCtx.fillStyle = '#ff3333';
+    enemies.forEach(enemy => {
+        const pos = worldToMinimap(enemy.position.x, enemy.position.z);
+        minimapCtx.beginPath();
+        minimapCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+        minimapCtx.fill();
+    });
+
+    // Draw bees as orange dots
+    minimapCtx.fillStyle = '#ff9900';
+    bees.forEach(bee => {
+        const pos = worldToMinimap(bee.position.x, bee.position.z);
+        minimapCtx.beginPath();
+        minimapCtx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+        minimapCtx.fill();
+    });
+
+    // Draw player as green dot with direction indicator
+    const playerPos = worldToMinimap(playerBug.position.x, playerBug.position.z);
+
+    // Player direction indicator (triangle)
+    minimapCtx.fillStyle = '#00ff00';
+    minimapCtx.save();
+    minimapCtx.translate(playerPos.x, playerPos.y);
+    minimapCtx.rotate(-playerState.rotation);
+    minimapCtx.beginPath();
+    minimapCtx.moveTo(0, -6);  // Point forward
+    minimapCtx.lineTo(-4, 4);
+    minimapCtx.lineTo(4, 4);
+    minimapCtx.closePath();
+    minimapCtx.fill();
+    minimapCtx.restore();
+
+    // Player glow effect
+    minimapCtx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+    minimapCtx.beginPath();
+    minimapCtx.arc(playerPos.x, playerPos.y, 8, 0, Math.PI * 2);
+    minimapCtx.fill();
+}
+
+// ============================================
 // ANIMATION LOOP
 // ============================================
 
@@ -1671,6 +1759,9 @@ function animate(currentTime) {
 
     // Update confetti particles
     updateConfetti();
+
+    // Draw minimap (real-time update)
+    drawMinimap();
 
     renderer.render(scene, camera);
 }
