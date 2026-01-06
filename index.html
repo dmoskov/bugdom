@@ -34,19 +34,56 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             border: 2px solid rgba(255, 255, 255, 0.3);
         }
-        #health {
+        #health-container {
             position: absolute;
             top: 10px;
-            right: 180px;
-            color: white;
-            background: linear-gradient(135deg, rgba(34, 139, 34, 0.8), rgba(0, 100, 0, 0.8));
-            padding: 15px 25px;
-            border-radius: 10px;
-            font-size: 24px;
-            font-weight: bold;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 100;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        #health-label {
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        #health-bar-wrapper {
+            width: 200px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 3px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
             border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        #health-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #22cc22, #44dd44);
+            border-radius: 7px;
+            transition: width 0.3s ease, background 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+        #health-bar.warning {
+            background: linear-gradient(90deg, #ffaa00, #ffcc33);
+        }
+        #health-bar.critical {
+            background: linear-gradient(90deg, #dd2222, #ff4444);
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3); }
+            50% { opacity: 0.7; box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), 0 0 10px rgba(255, 0, 0, 0.5); }
+        }
+        #health-text {
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
         #clover-count {
             position: absolute;
@@ -162,7 +199,13 @@
         Collect clovers! Avoid enemy ants!
     </div>
     <div id="clover-count">Clovers: 0/13</div>
-    <div id="health">Health: 100</div>
+    <div id="health-container">
+        <div id="health-label">HEALTH</div>
+        <div id="health-bar-wrapper">
+            <div id="health-bar"></div>
+        </div>
+        <div id="health-text">100 / 100</div>
+    </div>
     <div id="score">Score: 0</div>
     <div id="audio-controls">
         <button id="mute-btn" title="Toggle Sound">🔊</button>

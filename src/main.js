@@ -1027,25 +1027,101 @@ function flashPlayer() {
 
 // Update health display in UI
 function updateHealthDisplay() {
-    const healthElement = document.getElementById('health');
-    if (healthElement) {
-        healthElement.textContent = `Health: ${playerHealth}`;
+    const healthBar = document.getElementById('health-bar');
+    const healthText = document.getElementById('health-text');
 
-        // Change color based on health level
-        if (playerHealth > 60) {
-            healthElement.style.background = 'linear-gradient(135deg, rgba(34, 139, 34, 0.8), rgba(0, 100, 0, 0.8))';
-        } else if (playerHealth > 30) {
-            healthElement.style.background = 'linear-gradient(135deg, rgba(255, 165, 0, 0.8), rgba(200, 120, 0, 0.8))';
-        } else {
-            healthElement.style.background = 'linear-gradient(135deg, rgba(220, 20, 20, 0.8), rgba(150, 0, 0, 0.8))';
+    if (healthBar) {
+        // Update bar width
+        const healthPercent = (playerHealth / MAX_HEALTH) * 100;
+        healthBar.style.width = `${healthPercent}%`;
+
+        // Update visual state classes
+        healthBar.classList.remove('warning', 'critical');
+        if (playerHealth <= 25) {
+            healthBar.classList.add('critical');
+        } else if (playerHealth <= 50) {
+            healthBar.classList.add('warning');
         }
+    }
+
+    if (healthText) {
+        healthText.textContent = `${playerHealth} / ${MAX_HEALTH}`;
     }
 }
 
 // Game over handler
+let gameOverTriggered = false;
+
 function gameOver() {
+    if (gameOverTriggered) return;
+    gameOverTriggered = true;
+
     // Play game over sound (also stops music)
     audioManager.playGameOver();
+
+    // Calculate elapsed time
+    const elapsedTime = (performance.now() - gameStartTime) / 1000;
+    const minutes = Math.floor(elapsedTime / 60);
+    const seconds = Math.floor(elapsedTime % 60);
+    const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    // Add game over specific styles
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeInGameOver {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes shakeTitle {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        #game-over {
+            animation: fadeInGameOver 0.5s ease-out;
+        }
+        #game-over h1 {
+            animation: shakeTitle 0.8s ease-in-out;
+            text-shadow: 0 0 20px rgba(200, 0, 0, 0.5), 0 0 40px rgba(200, 0, 0, 0.3);
+        }
+        #game-over .stat-box {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin: 10px;
+            min-width: 150px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        #game-over .stat-label {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+        #game-over .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ff6666;
+        }
+        #game-over button {
+            padding: 18px 50px;
+            font-size: 22px;
+            background: linear-gradient(135deg, #cc3333, #aa2222);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        #game-over button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(200, 0, 0, 0.4);
+            background: linear-gradient(135deg, #dd4444, #bb3333);
+        }
+    `;
+    document.head.appendChild(style);
 
     // Create game over overlay
     const overlay = document.createElement('div');
@@ -1056,7 +1132,7 @@ function gameOver() {
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(20, 0, 0, 0.9);
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -1066,17 +1142,23 @@ function gameOver() {
         font-family: Arial, sans-serif;
     `;
     overlay.innerHTML = `
-        <h1 style="font-size: 64px; color: #cc2222; margin-bottom: 20px;">GAME OVER</h1>
-        <p style="font-size: 24px; margin-bottom: 30px;">Final Score: ${score}</p>
-        <button onclick="location.reload()" style="
-            padding: 15px 40px;
-            font-size: 20px;
-            background: #228b22;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-        ">Play Again</button>
+        <h1 style="font-size: 72px; color: #cc2222; margin-bottom: 10px;">GAME OVER</h1>
+        <p style="font-size: 18px; color: #888; margin-bottom: 30px;">The ants got you!</p>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
+            <div class="stat-box">
+                <div class="stat-label">FINAL SCORE</div>
+                <div class="stat-value">${score}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">TIME</div>
+                <div class="stat-value">${timeString}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">CLOVERS</div>
+                <div class="stat-value">${cloversCollected}/${TOTAL_CLOVERS}</div>
+            </div>
+        </div>
+        <button onclick="location.reload()">Try Again</button>
     `;
     document.body.appendChild(overlay);
 }
@@ -1287,4 +1369,4 @@ if (sfxVolume) {
 animate(0);
 
 // Export scene for testing
-export { scene, camera, renderer, score, clovers, playerBug, enemies, playerHealth, audioManager, cloversCollected, TOTAL_CLOVERS, gameWon };
+export { scene, camera, renderer, score, clovers, playerBug, enemies, playerHealth, MAX_HEALTH, audioManager, cloversCollected, TOTAL_CLOVERS, gameWon, gameOverTriggered };
