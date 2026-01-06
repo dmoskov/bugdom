@@ -125,9 +125,9 @@ const playerState = {
 };
 
 // Third-person camera offset
-const cameraOffset = new THREE.Vector3(0, 4, 8);
+const cameraOffset = new THREE.Vector3(0, 4, -8);
 const cameraLookOffset = new THREE.Vector3(0, 1, 0);
-camera.position.set(0, 4, 8);
+camera.position.set(0, 4, -8);
 camera.lookAt(0, 1, 0);
 
 // Renderer setup
