@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { audioManager } from './audio.js';
+import { DayNightCycle } from './daynight.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -151,6 +152,9 @@ directionalLight.shadow.camera.bottom = -50;
 directionalLight.shadow.mapSize.width = 2048;
 directionalLight.shadow.mapSize.height = 2048;
 scene.add(directionalLight);
+
+// Day/Night Cycle System
+let dayNightCycle = null;
 
 // Ground plane with grass texture
 const groundGeometry = new THREE.PlaneGeometry(100, 100, 32, 32);
@@ -1760,6 +1764,11 @@ function animate(currentTime) {
     // Update confetti particles
     updateConfetti();
 
+    // Update day/night cycle
+    if (dayNightCycle && gameStarted) {
+        dayNightCycle.update(deltaTime);
+    }
+
     // Draw minimap (real-time update)
     drawMinimap();
 
@@ -1799,6 +1808,8 @@ if (startButton && startOverlay) {
         startOverlay.classList.add('hidden');
         initAudio();
         updateCloverCountDisplay();
+        // Initialize day/night cycle
+        dayNightCycle = new DayNightCycle(scene, ambientLight, directionalLight);
     });
 }
 
