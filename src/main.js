@@ -214,7 +214,205 @@ for (let i = -40; i <= 40; i += 10) {
     });
 }
 
-// Camera controls
+// ============================================
+// COLLECTIBLE CLOVERS
+// ============================================
+
+// Score state
+let score = 0;
+const clovers = [];
+
+// Create a single clover leaf (heart shape)
+function createCloverLeaf() {
+    const shape = new THREE.Shape();
+
+    // Heart-shaped leaf
+    shape.moveTo(0, 0);
+    shape.bezierCurveTo(0.1, 0.1, 0.2, 0.2, 0.15, 0.35);
+    shape.bezierCurveTo(0.1, 0.5, 0, 0.45, 0, 0.35);
+    shape.bezierCurveTo(0, 0.45, -0.1, 0.5, -0.15, 0.35);
+    shape.bezierCurveTo(-0.2, 0.2, -0.1, 0.1, 0, 0);
+
+    const extrudeSettings = {
+        depth: 0.05,
+        bevelEnabled: true,
+        bevelThickness: 0.02,
+        bevelSize: 0.02,
+        bevelSegments: 2
+    };
+
+    return new THREE.ExtrudeGeometry(shape, extrudeSettings);
+}
+
+// Create a full clover (3 or 4 leaves)
+function createClover(x, z, isFourLeaf = false) {
+    const cloverGroup = new THREE.Group();
+
+    // Clover leaves
+    const leafCount = isFourLeaf ? 4 : 3;
+    const leafMaterial = new THREE.MeshStandardMaterial({
+        color: 0x228b22,
+        roughness: 0.6,
+        metalness: 0.1,
+        emissive: 0x114411,
+        emissiveIntensity: 0.2
+    });
+
+    for (let i = 0; i < leafCount; i++) {
+        const leafGeometry = createCloverLeaf();
+        const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+        const angle = (i / leafCount) * Math.PI * 2;
+        leaf.position.set(0, 0.5, 0);
+        leaf.rotation.x = -Math.PI / 2;
+        leaf.rotation.z = angle;
+        leaf.scale.set(0.8, 0.8, 0.8);
+        leaf.castShadow = true;
+        cloverGroup.add(leaf);
+    }
+
+    // Stem
+    const stemGeometry = new THREE.CylinderGeometry(0.03, 0.04, 0.5, 6);
+    const stemMaterial = new THREE.MeshStandardMaterial({
+        color: 0x1a6b1a,
+        roughness: 0.7
+    });
+    const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+    stem.position.y = 0.25;
+    stem.castShadow = true;
+    cloverGroup.add(stem);
+
+    // Position the clover
+    cloverGroup.position.set(x, 0.1, z);
+
+    // Add floating animation properties
+    cloverGroup.userData = {
+        collectible: true,
+        collected: false,
+        baseY: 0.1,
+        rotationSpeed: 0.02 + Math.random() * 0.01,
+        floatSpeed: 2 + Math.random(),
+        floatOffset: Math.random() * Math.PI * 2,
+        isFourLeaf: isFourLeaf
+    };
+
+    return cloverGroup;
+}
+
+// Generate clover positions (avoiding rocks and flowers)
+const cloverPositions = [
+    { x: 5, z: 3 },
+    { x: -8, z: 12 },
+    { x: 12, z: -8 },
+    { x: -15, z: -12 },
+    { x: 20, z: 10 },
+    { x: -22, z: 8 },
+    { x: 8, z: -20 },
+    { x: -5, z: -5 },
+    { x: 15, z: 15 },
+    { x: -18, z: -18 },
+    { x: 25, z: -5 },
+    { x: -10, z: 20 },
+    { x: 0, z: -15 }
+];
+
+// Add clovers to scene
+cloverPositions.forEach((pos, index) => {
+    // Make every 4th clover a four-leaf clover (worth more points)
+    const isFourLeaf = index % 4 === 0;
+    const clover = createClover(pos.x, pos.z, isFourLeaf);
+    scene.add(clover);
+    clovers.push(clover);
+});
+
+// Collision detection radius
+const COLLECTION_RADIUS = 2.5;
+
+// Check for clover collection
+function checkCloverCollision() {
+    clovers.forEach(clover => {
+        if (clover.userData.collected) return;
+
+        const distance = camera.position.distanceTo(clover.position);
+
+        if (distance < COLLECTION_RADIUS) {
+            collectClover(clover);
+        }
+    });
+}
+
+// Collect a clover
+function collectClover(clover) {
+    if (clover.userData.collected) return;
+
+    clover.userData.collected = true;
+
+    // Four-leaf clovers worth more
+    const points = clover.userData.isFourLeaf ? 25 : 10;
+    score += points;
+
+    // Update score display
+    updateScoreDisplay();
+
+    // Animate collection (scale down and fade)
+    animateCollection(clover);
+}
+
+// Collection animation
+function animateCollection(clover) {
+    const startScale = clover.scale.x;
+    const startY = clover.position.y;
+    let progress = 0;
+
+    function animateStep() {
+        progress += 0.08;
+
+        if (progress >= 1) {
+            scene.remove(clover);
+            return;
+        }
+
+        // Scale down
+        const scale = startScale * (1 - progress);
+        clover.scale.set(scale, scale, scale);
+
+        // Float up
+        clover.position.y = startY + progress * 2;
+
+        // Spin
+        clover.rotation.y += 0.2;
+
+        requestAnimationFrame(animateStep);
+    }
+
+    animateStep();
+}
+
+// Update score display in UI
+function updateScoreDisplay() {
+    const scoreElement = document.getElementById('score');
+    if (scoreElement) {
+        scoreElement.textContent = `Score: ${score}`;
+    }
+}
+
+// Animate clovers (floating and rotating)
+function animateClovers(time) {
+    clovers.forEach(clover => {
+        if (clover.userData.collected) return;
+
+        // Floating animation
+        const floatY = Math.sin(time * 0.001 * clover.userData.floatSpeed + clover.userData.floatOffset) * 0.15;
+        clover.position.y = clover.userData.baseY + floatY + 0.3;
+
+        // Rotation
+        clover.rotation.y += clover.userData.rotationSpeed;
+    });
+}
+
+// ============================================
+// CAMERA CONTROLS
+// ============================================
+
 const keys = {
     w: false, a: false, s: false, d: false,
     ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false
@@ -240,9 +438,15 @@ window.addEventListener('mousemove', (e) => {
     targetRotationX = -mouseY * 0.5;
 });
 
-// Animation loop
+// ============================================
+// ANIMATION LOOP
+// ============================================
+
+let animationTime = 0;
+
 function animate() {
     requestAnimationFrame(animate);
+    animationTime += 16; // ~60fps
 
     // Camera movement
     const speed = 0.2;
@@ -269,6 +473,12 @@ function animate() {
     camera.rotation.x += (targetRotationX - camera.rotation.x) * 0.05;
     camera.rotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, camera.rotation.x));
 
+    // Update clovers animation
+    animateClovers(animationTime);
+
+    // Check for clover collection
+    checkCloverCollision();
+
     renderer.render(scene, camera);
 }
 
@@ -283,4 +493,4 @@ window.addEventListener('resize', () => {
 animate();
 
 // Export scene for testing
-export { scene, camera, renderer };
+export { scene, camera, renderer, score, clovers };

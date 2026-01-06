@@ -20,6 +20,20 @@
             border-radius: 5px;
             z-index: 100;
         }
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: linear-gradient(135deg, rgba(34, 139, 34, 0.8), rgba(0, 100, 0, 0.8));
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
         canvas {
             display: block;
         }
@@ -29,8 +43,10 @@
     <div id="info">
         <strong>Bugdom - Level 1 Test Terrain</strong><br>
         Use arrow keys or WASD to move camera<br>
-        Mouse to look around
+        Mouse to look around<br>
+        Collect clovers for points!
     </div>
+    <div id="score">Score: 0</div>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>
