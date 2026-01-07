@@ -1592,11 +1592,11 @@ function updatePlayerBug() {
     const direction = new THREE.Vector3();
 
     if (moveForward) {
-        direction.z = -1;
+        direction.z = 1;
         playerState.isMoving = true;
     }
     if (moveBackward) {
-        direction.z = 1;
+        direction.z = -1;
         playerState.isMoving = true;
     }
 
