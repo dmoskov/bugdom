@@ -4,8 +4,8 @@ import * as THREE from 'three';
 // DAY/NIGHT CYCLE SYSTEM
 // ============================================
 
-// Cycle configuration
-const CYCLE_DURATION = 300; // 5 minutes = 300 seconds
+// Default cycle configuration
+const DEFAULT_CYCLE_DURATION = 300; // 5 minutes = 300 seconds
 const PHASES = {
     DAY: 'day',
     SUNSET: 'sunset',
@@ -72,10 +72,21 @@ const FIREFLY_COUNT = 100;
 const FIREFLY_AREA = 80;
 
 class DayNightCycle {
-    constructor(scene, ambientLight, directionalLight) {
+    constructor(scene, ambientLight, directionalLight, options = {}) {
         this.scene = scene;
         this.ambientLight = ambientLight;
         this.directionalLight = directionalLight;
+
+        // Configuration options
+        this.cycleDuration = options.cycleDuration || DEFAULT_CYCLE_DURATION;
+        this.timeSpeed = options.timeSpeed || 1.0;
+
+        // Event listeners
+        this.eventListeners = {
+            timeChange: [],
+            phaseChange: [],
+            cycleComplete: []
+        };
 
         // Cycle state
         this.cycleTime = 0;
@@ -370,16 +381,27 @@ class DayNightCycle {
     }
 
     update(deltaTime) {
-        // Update cycle time (deltaTime is in milliseconds)
-        this.cycleTime += deltaTime / 1000;
+        // Update cycle time (deltaTime is in milliseconds) with time speed multiplier
+        const timeIncrement = (deltaTime / 1000) * this.timeSpeed;
+        this.cycleTime += timeIncrement;
 
         // Loop the cycle
-        if (this.cycleTime >= CYCLE_DURATION) {
-            this.cycleTime -= CYCLE_DURATION;
+        const wasComplete = this.cycleTime >= this.cycleDuration;
+        if (wasComplete) {
+            this.cycleTime -= this.cycleDuration;
+            this.emit('cycleComplete', { cycleTime: this.cycleTime });
         }
 
         // Calculate progress (0 to 1)
-        this.cycleProgress = this.cycleTime / CYCLE_DURATION;
+        const oldProgress = this.cycleProgress;
+        this.cycleProgress = this.cycleTime / this.cycleDuration;
+
+        // Emit time change event
+        this.emit('timeChange', {
+            cycleTime: this.cycleTime,
+            cycleProgress: this.cycleProgress,
+            phase: this.currentPhase
+        });
 
         // Determine current phase
         this.updatePhase();
@@ -424,7 +446,12 @@ class DayNightCycle {
     }
 
     onPhaseChange(phase) {
-        // Phase change effects could be added here (e.g., sounds)
+        // Emit phase change event
+        this.emit('phaseChange', {
+            phase: phase,
+            cycleProgress: this.cycleProgress,
+            cycleTime: this.cycleTime
+        });
     }
 
     updateCelestialBodies() {
@@ -731,9 +758,92 @@ class DayNightCycle {
 
     // Set specific time (for testing or gameplay purposes)
     setTime(progress) {
-        this.cycleTime = progress * CYCLE_DURATION;
+        this.cycleTime = progress * this.cycleDuration;
+    }
+
+    // ============================================
+    // EVENT SYSTEM
+    // ============================================
+
+    // Add event listener
+    on(eventName, callback) {
+        if (this.eventListeners[eventName]) {
+            this.eventListeners[eventName].push(callback);
+        } else {
+            console.warn(`Unknown event type: ${eventName}`);
+        }
+    }
+
+    // Remove event listener
+    off(eventName, callback) {
+        if (this.eventListeners[eventName]) {
+            const index = this.eventListeners[eventName].indexOf(callback);
+            if (index > -1) {
+                this.eventListeners[eventName].splice(index, 1);
+            }
+        }
+    }
+
+    // Emit event
+    emit(eventName, data) {
+        if (this.eventListeners[eventName]) {
+            this.eventListeners[eventName].forEach(callback => {
+                try {
+                    callback(data);
+                } catch (error) {
+                    console.error(`Error in ${eventName} listener:`, error);
+                }
+            });
+        }
+    }
+
+    // ============================================
+    // CONFIGURATION METHODS
+    // ============================================
+
+    // Get cycle duration in seconds
+    getCycleDuration() {
+        return this.cycleDuration;
+    }
+
+    // Set cycle duration in seconds
+    setCycleDuration(duration) {
+        if (duration > 0) {
+            this.cycleDuration = duration;
+            // Recalculate progress based on new duration
+            this.cycleProgress = this.cycleTime / this.cycleDuration;
+        }
+    }
+
+    // Get time speed multiplier
+    getTimeSpeed() {
+        return this.timeSpeed;
+    }
+
+    // Set time speed multiplier
+    setTimeSpeed(speed) {
+        if (speed >= 0) {
+            this.timeSpeed = speed;
+        }
+    }
+
+    // Get current time in seconds
+    getCurrentTime() {
+        return this.cycleTime;
+    }
+
+    // Get current time in 24-hour format
+    getTimeIn24HourFormat() {
+        const hours = this.cycleProgress * 24;
+        const h = Math.floor(hours);
+        const m = Math.floor((hours - h) * 60);
+        return {
+            hours: h,
+            minutes: m,
+            formatted: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+        };
     }
 }
 
 // Export the class and constants
-export { DayNightCycle, PHASES, CYCLE_DURATION };
+export { DayNightCycle, PHASES, DEFAULT_CYCLE_DURATION };
