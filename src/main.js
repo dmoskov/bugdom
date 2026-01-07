@@ -631,6 +631,8 @@ function collectClover(clover) {
     // Show combo popup if multiplier > 1
     if (comboMultiplier > 1) {
         showComboPopup(comboMultiplier, points);
+        // Play combo sound
+        audioManager.playCombo(comboMultiplier);
     }
 
     // Play collection sound
@@ -661,6 +663,9 @@ function checkLevelUp() {
         currentLevel = newLevel;
         updateLevelDisplay();
         showLevelUpPopup();
+
+        // Play level up sound
+        audioManager.playLevelUp();
 
         // Apply new difficulty settings
         applyDifficultySettings();
@@ -792,7 +797,8 @@ function updateComboDisplay() {
 function updateLevelDisplay() {
     const levelElement = document.getElementById('level-display');
     if (levelElement) {
-        levelElement.textContent = `Level ${currentLevel}`;
+        const difficultyEmoji = { easy: '🟢', medium: '🟡', hard: '🔴' }[selectedDifficulty];
+        levelElement.textContent = `${difficultyEmoji} Level ${currentLevel}`;
         // Flash animation on level up
         levelElement.classList.remove('level-up');
         void levelElement.offsetWidth; // Force reflow
@@ -1043,7 +1049,7 @@ function showVictoryScreen(timeString) {
             </div>
             <div class="stat">
                 <div class="stat-label">DIFFICULTY</div>
-                <div class="stat-value" style="color: #9933ff;">Level ${currentLevel}</div>
+                <div class="stat-value" style="color: #9933ff;">${DIFFICULTY_PRESETS[selectedDifficulty].name} - Level ${currentLevel}</div>
             </div>
         </div>
         <div>
@@ -1072,12 +1078,24 @@ function animateClovers(time) {
 // ENEMY ANTS
 // ============================================
 
-// Player health state
-let playerHealth = 100;
-const MAX_HEALTH = 100;
-const DAMAGE_PER_HIT = 10;
+// Player health state (will be adjusted by difficulty)
+const BASE_MAX_HEALTH = 100;
+let MAX_HEALTH = 100; // Adjusted on game start
+let playerHealth = 100; // Adjusted on game start
+const BASE_DAMAGE_PER_HIT = 10;
+let DAMAGE_PER_HIT = 10; // Adjusted by difficulty
 const DAMAGE_COOLDOWN = 1000; // 1 second invincibility after being hit
 let lastDamageTime = 0;
+
+// Apply difficulty modifiers to player stats
+function applyDifficultyToPlayer() {
+    const preset = DIFFICULTY_PRESETS[selectedDifficulty];
+    MAX_HEALTH = Math.floor(BASE_MAX_HEALTH * preset.playerHealthMultiplier);
+    playerHealth = MAX_HEALTH;
+    DAMAGE_PER_HIT = Math.floor(BASE_DAMAGE_PER_HIT * preset.damageMultiplier);
+    playerState.moveSpeed = 0.15 * preset.playerSpeedMultiplier;
+    updateHealthDisplay();
+}
 
 // Enemy state
 const enemies = [];
@@ -1884,6 +1902,9 @@ function pauseGame() {
     gameState = GameState.PAUSED;
     lastPauseTime = performance.now();
 
+    // Play pause sound
+    audioManager.playPause();
+
     // Show pause overlay
     showPauseOverlay();
 
@@ -1903,6 +1924,9 @@ function resumeGame() {
 
     // Resume audio
     audioManager.resume();
+    
+    // Play resume sound
+    audioManager.playResume();
 }
 
 function showPauseOverlay() {
@@ -2033,13 +2057,41 @@ function showWelcomeMessage() {
     }
 }
 
+// Difficulty selection handlers
+const difficultyButtons = document.querySelectorAll('.difficulty-btn');
+const difficultyDesc = document.getElementById('difficulty-desc');
+
+if (difficultyButtons && difficultyDesc) {
+    difficultyButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove selected class from all buttons
+            difficultyButtons.forEach(b => b.classList.remove('selected'));
+
+            // Add selected class to clicked button
+            btn.classList.add('selected');
+
+            // Update selected difficulty
+            selectedDifficulty = btn.dataset.difficulty;
+
+            // Update description
+            const preset = DIFFICULTY_PRESETS[selectedDifficulty];
+            difficultyDesc.textContent = preset.description;
+        });
+    });
+}
+
 if (startButton && startOverlay) {
     startButton.addEventListener('click', () => {
         gameStarted = true;
         gameStartTime = performance.now();
         startOverlay.classList.add('hidden');
+
+        // Apply difficulty settings to player
+        applyDifficultyToPlayer();
+
         initAudio();
         updateCloverCountDisplay();
+        updateLevelDisplay(); // Show initial level with difficulty
         // Initialize day/night cycle
         dayNightCycle = new DayNightCycle(scene, ambientLight, directionalLight);
 
