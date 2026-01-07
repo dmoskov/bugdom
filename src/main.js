@@ -1804,6 +1804,26 @@ function initAudio() {
 // Start button click handler
 const startButton = document.getElementById('start-button');
 const startOverlay = document.getElementById('start-overlay');
+const welcomeMessage = document.getElementById('welcome-message');
+
+let welcomeMessageShown = false;
+
+// Show welcome message after game starts
+function showWelcomeMessage() {
+    if (welcomeMessage && !welcomeMessageShown) {
+        welcomeMessageShown = true;
+        welcomeMessage.classList.remove('hidden');
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            welcomeMessage.classList.add('hiding');
+            setTimeout(() => {
+                welcomeMessage.classList.add('hidden');
+                welcomeMessage.classList.remove('hiding');
+            }, 500); // Match animation duration
+        }, 5000);
+    }
+}
 
 if (startButton && startOverlay) {
     startButton.addEventListener('click', () => {
@@ -1814,6 +1834,9 @@ if (startButton && startOverlay) {
         updateCloverCountDisplay();
         // Initialize day/night cycle
         dayNightCycle = new DayNightCycle(scene, ambientLight, directionalLight);
+
+        // Show welcome message after a short delay
+        setTimeout(showWelcomeMessage, 1000);
     });
 }
 
@@ -1841,6 +1864,50 @@ if (sfxVolume) {
         audioManager.setSfxVolume(e.target.value / 100);
     });
 }
+
+// ============================================
+// HELP SYSTEM CONTROLS
+// ============================================
+
+const helpButton = document.getElementById('help-button');
+const helpOverlay = document.getElementById('help-overlay');
+const helpClose = document.getElementById('help-close');
+
+// Toggle help overlay
+function toggleHelp() {
+    if (helpOverlay) {
+        helpOverlay.classList.toggle('show');
+    }
+}
+
+// Close help overlay
+function closeHelp() {
+    if (helpOverlay) {
+        helpOverlay.classList.remove('show');
+    }
+}
+
+// Help button click
+if (helpButton) {
+    helpButton.addEventListener('click', toggleHelp);
+}
+
+// Help close button click
+if (helpClose) {
+    helpClose.addEventListener('click', closeHelp);
+}
+
+// Keyboard shortcuts for help
+document.addEventListener('keydown', (e) => {
+    // H key to toggle help
+    if (e.key === 'h' || e.key === 'H') {
+        toggleHelp();
+    }
+    // ESC key to close help
+    if (e.key === 'Escape' && helpOverlay && helpOverlay.classList.contains('show')) {
+        closeHelp();
+    }
+});
 
 // Start animation
 animate(0);
