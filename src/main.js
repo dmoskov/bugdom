@@ -2107,6 +2107,10 @@ const sfxVolume = document.getElementById('sfx-volume');
 
 if (muteBtn) {
     muteBtn.addEventListener('click', () => {
+        // Play UI click sound before toggling (so it can be heard)
+        if (!audioManager.getMuteState()) {
+            audioManager.playUIClick();
+        }
         const isMuted = audioManager.toggleMute();
         muteBtn.textContent = isMuted ? '🔇' : '🔊';
         muteBtn.classList.toggle('muted', isMuted);
