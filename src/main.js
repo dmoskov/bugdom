@@ -340,13 +340,65 @@ for (let i = -40; i <= 40; i += 10) {
 
 // Score state
 let score = 0;
+let highScore = 0;
+let isNewHighScore = false;
 const clovers = [];
 let cloversCollected = 0;
 const TOTAL_CLOVERS = 13;
 
+// ============================================
+// HIGH SCORE PERSISTENCE
+// ============================================
+
+// Load high score from localStorage
+function loadHighScore() {
+    try {
+        const saved = localStorage.getItem('bugdom_highscore');
+        if (saved !== null) {
+            highScore = parseInt(saved, 10);
+            if (isNaN(highScore)) highScore = 0;
+        }
+    } catch (e) {
+        console.warn('Could not load high score:', e);
+        highScore = 0;
+    }
+}
+
+// Save high score to localStorage
+function saveHighScore() {
+    try {
+        localStorage.setItem('bugdom_highscore', highScore.toString());
+    } catch (e) {
+        console.warn('Could not save high score:', e);
+    }
+}
+
+// Update high score if current score exceeds it
+function checkAndUpdateHighScore() {
+    if (score > highScore) {
+        highScore = score;
+        isNewHighScore = true;
+        saveHighScore();
+        return true;
+    }
+    return false;
+}
+
+// Initialize high score on game load
+loadHighScore();
+
+// Game state enum
+const GameState = {
+    PLAYING: 'playing',
+    PAUSED: 'paused',
+    GAME_OVER: 'game_over'
+};
+
 // Game state
+let gameState = GameState.PLAYING;
 let gameWon = false;
 let gameStartTime = 0;
+let pausedTime = 0; // Track time spent paused
 
 // ============================================
 // DIFFICULTY & PROGRESSION SYSTEM
@@ -647,7 +699,11 @@ function animateCollection(clover) {
 function updateScoreDisplay() {
     const scoreElement = document.getElementById('score');
     if (scoreElement) {
-        scoreElement.textContent = `Score: ${score}`;
+        if (highScore > 0) {
+            scoreElement.innerHTML = `Score: ${score}<br><span style="font-size: 14px; color: #ffcc00;">Best: ${highScore}</span>`;
+        } else {
+            scoreElement.textContent = `Score: ${score}`;
+        }
     }
 }
 
@@ -803,6 +859,10 @@ function updateConfetti() {
 function victory() {
     if (gameWon) return;
     gameWon = true;
+    gameState = GameState.GAME_OVER;
+
+    // Check and update high score
+    checkAndUpdateHighScore();
 
     // Calculate elapsed time
     const elapsedTime = (performance.now() - gameStartTime) / 1000;
@@ -898,8 +958,13 @@ function showVictoryScreen(timeString) {
     `;
     document.head.appendChild(style);
 
+    const highScoreMessage = isNewHighScore
+        ? '<p style="font-size: 28px; color: #ffcc00; margin: 10px 0; animation: sparkle 1.5s ease-in-out infinite;">🎉 NEW HIGH SCORE! 🎉</p>'
+        : '';
+
     overlay.innerHTML = `
         <h1 style="font-size: 64px; color: gold; margin-bottom: 20px;">LEVEL COMPLETE!</h1>
+        ${highScoreMessage}
         <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 30px;">
             <div class="stat">
                 <div class="stat-label">TIME</div>
@@ -908,6 +973,10 @@ function showVictoryScreen(timeString) {
             <div class="stat">
                 <div class="stat-label">SCORE</div>
                 <div class="stat-value">${score}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">HIGH SCORE</div>
+                <div class="stat-value" style="color: #ffcc00;">${highScore}</div>
             </div>
             <div class="stat">
                 <div class="stat-label">CLOVERS</div>
@@ -1422,6 +1491,10 @@ let gameOverTriggered = false;
 function gameOver() {
     if (gameOverTriggered) return;
     gameOverTriggered = true;
+    gameState = GameState.GAME_OVER;
+
+    // Check and update high score
+    checkAndUpdateHighScore();
 
     // Play game over sound (also stops music)
     audioManager.playGameOver();
@@ -1509,13 +1582,22 @@ function gameOver() {
         font-family: Arial, sans-serif;
     `;
     const enemyMsg = bees.length > 0 ? 'The bugs got you!' : 'The ants got you!';
+    const highScoreMessage = isNewHighScore
+        ? '<p style="font-size: 24px; color: #ffcc00; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>'
+        : '';
+
     overlay.innerHTML = `
         <h1 style="font-size: 72px; color: #cc2222; margin-bottom: 10px;">GAME OVER</h1>
-        <p style="font-size: 18px; color: #888; margin-bottom: 30px;">${enemyMsg}</p>
+        <p style="font-size: 18px; color: #888; margin-bottom: 10px;">${enemyMsg}</p>
+        ${highScoreMessage}
         <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
             <div class="stat-box">
                 <div class="stat-label">FINAL SCORE</div>
                 <div class="stat-value">${score}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">HIGH SCORE</div>
+                <div class="stat-value" style="color: #ffcc00;">${highScore}</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">TIME</div>
@@ -1724,6 +1806,66 @@ function drawMinimap() {
 }
 
 // ============================================
+// PAUSE/RESUME FUNCTIONALITY
+// ============================================
+
+let lastPauseTime = 0;
+
+function togglePause() {
+    if (gameState === GameState.GAME_OVER || !gameStarted) return;
+
+    if (gameState === GameState.PLAYING) {
+        pauseGame();
+    } else if (gameState === GameState.PAUSED) {
+        resumeGame();
+    }
+}
+
+function pauseGame() {
+    gameState = GameState.PAUSED;
+    lastPauseTime = performance.now();
+
+    // Show pause overlay
+    showPauseOverlay();
+
+    // Pause audio
+    audioManager.pause();
+}
+
+function resumeGame() {
+    gameState = GameState.PLAYING;
+
+    // Track paused time to adjust game timer
+    const pauseDuration = performance.now() - lastPauseTime;
+    pausedTime += pauseDuration;
+
+    // Hide pause overlay
+    hidePauseOverlay();
+
+    // Resume audio
+    audioManager.resume();
+}
+
+function showPauseOverlay() {
+    const pauseOverlay = document.getElementById('pause-overlay');
+    if (pauseOverlay) {
+        pauseOverlay.classList.remove('hidden');
+    }
+}
+
+function hidePauseOverlay() {
+    const pauseOverlay = document.getElementById('pause-overlay');
+    if (pauseOverlay) {
+        pauseOverlay.classList.add('hidden');
+    }
+}
+
+function restartGame() {
+    // Reload the page to restart the game
+    location.reload();
+}
+
+// ============================================
 // ANIMATION LOOP
 // ============================================
 
@@ -1735,6 +1877,13 @@ function animate(currentTime) {
 
     const deltaTime = currentTime - lastTime;
     lastTime = currentTime;
+
+    // If game is paused, don't update game logic, only render
+    if (gameState === GameState.PAUSED) {
+        renderer.render(scene, camera);
+        return;
+    }
+
     animationTime += 16; // ~60fps for clover animation
 
     // Update player bug movement (even after victory for camera to work)
@@ -1866,6 +2015,26 @@ if (sfxVolume) {
 }
 
 // ============================================
+// PAUSE SYSTEM CONTROLS
+// ============================================
+
+const pauseButton = document.getElementById('pause-button');
+const resumeButton = document.getElementById('resume-button');
+const restartButton = document.getElementById('restart-button');
+
+if (pauseButton) {
+    pauseButton.addEventListener('click', togglePause);
+}
+
+if (resumeButton) {
+    resumeButton.addEventListener('click', resumeGame);
+}
+
+if (restartButton) {
+    restartButton.addEventListener('click', restartGame);
+}
+
+// ============================================
 // HELP SYSTEM CONTROLS
 // ============================================
 
@@ -1897,15 +2066,24 @@ if (helpClose) {
     helpClose.addEventListener('click', closeHelp);
 }
 
-// Keyboard shortcuts for help
+// Keyboard shortcuts for help and pause
 document.addEventListener('keydown', (e) => {
     // H key to toggle help
     if (e.key === 'h' || e.key === 'H') {
         toggleHelp();
     }
-    // ESC key to close help
-    if (e.key === 'Escape' && helpOverlay && helpOverlay.classList.contains('show')) {
-        closeHelp();
+    // ESC key to close help or resume from pause
+    if (e.key === 'Escape') {
+        if (helpOverlay && helpOverlay.classList.contains('show')) {
+            closeHelp();
+        } else if (gameState === GameState.PAUSED) {
+            resumeGame();
+        }
+    }
+    // P key or Space bar to toggle pause
+    if ((e.key === 'p' || e.key === 'P' || e.key === ' ') && gameStarted) {
+        e.preventDefault(); // Prevent page scroll on spacebar
+        togglePause();
     }
 });
 

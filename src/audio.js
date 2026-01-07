@@ -54,6 +54,13 @@ class AudioManager {
         }
     }
 
+    // Pause audio context
+    async pause() {
+        if (this.context && this.context.state === 'running') {
+            await this.context.suspend();
+        }
+    }
+
     // ============================================
     // SOUND EFFECTS
     // ============================================
