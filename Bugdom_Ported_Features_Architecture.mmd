@@ -1,0 +1,41 @@
+
+graph TD
+    A[Jorio Bugdom C Source] --> B[enemies.js]
+    A --> C[particles.js]
+    A --> D[collectibles.js]
+    
+    B --> B1[Spider Enemy]
+    B --> B2[Slug Enemy]
+    B1 --> B1a[Thread Dropping]
+    B1 --> B1b[Web Shooting]
+    B1 --> B1c[8-Leg Animation]
+    B2 --> B2a[Slime Trail]
+    B2 --> B2b[Wave Motion]
+    
+    C --> C1[ParticleEffectsManager]
+    C --> C2[RippleManager]
+    C1 --> C1a[Sparks]
+    C1 --> C1b[Dust Puffs]
+    C1 --> C1c[Splashes]
+    C1 --> C1d[Bursts]
+    C1 --> C1e[Trails]
+    C2 --> C2a[Ground Ripples]
+    
+    D --> D1[Mushrooms]
+    D --> D2[Keys]
+    D --> D3[Coins]
+    D --> D4[Berries]
+    D1 --> D1a[Health/Speed/Invincibility]
+    D2 --> D2a[5 Colors for Doors]
+    D3 --> D3a[Bonus Points]
+    D4 --> D4a[Small Health Restore]
+    
+    B --> E[main.js Integration]
+    C --> E
+    D --> E
+    
+    style A fill:#ff9999
+    style B fill:#99ccff
+    style C fill:#99ff99
+    style D fill:#ffcc99
+    style E fill:#ffff99
