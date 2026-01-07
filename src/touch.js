@@ -13,7 +13,7 @@ let touchControls = {
 
 // Initialize touch controls
 export function initTouchControls() {
-    const joystickOuter = document.querySelector('.joystick-outer');
+    const joystickOuter = document.querySelector('.joystick-base');
     const joystickInner = document.querySelector('.joystick-stick');
 
     if (!joystickOuter || !joystickInner) {
@@ -110,12 +110,16 @@ export function initTouchControls() {
         }
     });
 
-    // Show controls on mobile
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Show controls on mobile - improved detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                     (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+                     ('ontouchstart' in window);
     const touchUI = document.getElementById('touch-controls');
     if (touchUI) {
-        touchUI.style.display = isMobile ? 'flex' : 'none';
+        touchUI.classList.toggle('active', isMobile);
     }
+
+    console.log('Touch controls initialized:', { isMobile, touchUI: !!touchUI });
 }
 
 // Export touch controls state
@@ -123,9 +127,48 @@ export function getTouchControls() {
     return touchControls;
 }
 
+// Prevent default touch behaviors on the document to avoid page scrolling/zooming
+function preventDefaultTouchBehaviors() {
+    // Prevent double-tap zoom
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            e.preventDefault();
+        }
+        lastTouchEnd = now;
+    }, { passive: false });
+
+    // Prevent pinch zoom
+    document.addEventListener('gesturestart', (e) => {
+        e.preventDefault();
+    });
+
+    document.addEventListener('gesturechange', (e) => {
+        e.preventDefault();
+    });
+
+    document.addEventListener('gestureend', (e) => {
+        e.preventDefault();
+    });
+
+    // Prevent page scrolling when touching the game canvas
+    document.addEventListener('touchmove', (e) => {
+        // Allow scrolling in help overlay
+        if (e.target.closest('#help-overlay, #help-content')) {
+            return;
+        }
+        e.preventDefault();
+    }, { passive: false });
+}
+
 // Initialize on load
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTouchControls);
+    document.addEventListener('DOMContentLoaded', () => {
+        initTouchControls();
+        preventDefaultTouchBehaviors();
+    });
 } else {
     initTouchControls();
+    preventDefaultTouchBehaviors();
 }
