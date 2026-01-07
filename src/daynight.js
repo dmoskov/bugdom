@@ -421,6 +421,9 @@ class DayNightCycle {
         // Update stars
         this.updateStars();
 
+        // Update point lights (streetlamps)
+        this.updatePointLights(deltaTime);
+
         // Update UI
         this.updateTimeDisplay();
     }

@@ -169,6 +169,67 @@
             margin-bottom: 30px;
             text-align: center;
         }
+        #difficulty-selection {
+            margin-bottom: 30px;
+        }
+        #difficulty-selection h2 {
+            color: #ffcc00;
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .difficulty-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .difficulty-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            min-width: 140px;
+        }
+        .difficulty-btn.easy {
+            background: linear-gradient(135deg, #22dd22, #33ee33);
+            color: #003300;
+        }
+        .difficulty-btn.easy:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(34, 221, 34, 0.5);
+        }
+        .difficulty-btn.medium {
+            background: linear-gradient(135deg, #ff9900, #ffaa00);
+            color: #330000;
+        }
+        .difficulty-btn.medium:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255, 153, 0, 0.5);
+        }
+        .difficulty-btn.hard {
+            background: linear-gradient(135deg, #dd2222, #ff3333);
+            color: white;
+        }
+        .difficulty-btn.hard:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(221, 34, 34, 0.5);
+        }
+        .difficulty-btn.selected {
+            border-color: white;
+            transform: scale(1.1);
+        }
+        .difficulty-description {
+            color: #aaa;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 40px;
+        }
         #start-button {
             background: linear-gradient(135deg, #4a9d2e, #228b22);
             border: none;
@@ -748,6 +809,25 @@
         Avoid enemy ants and bees!<br>
         <span style="color: #ffcc00;">Collect quickly for COMBO bonuses!</span><br>
         Use WASD or Arrow keys to move</p>
+
+        <div id="difficulty-selection">
+            <h2>Select Difficulty</h2>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn easy" data-difficulty="easy">
+                    🟢 EASY
+                </button>
+                <button class="difficulty-btn medium selected" data-difficulty="medium">
+                    🟡 MEDIUM
+                </button>
+                <button class="difficulty-btn hard" data-difficulty="hard">
+                    🔴 HARD
+                </button>
+            </div>
+            <div class="difficulty-description" id="difficulty-desc">
+                Balanced gameplay - Recommended for most players
+            </div>
+        </div>
+
         <button id="start-button">Click to Start</button>
     </div>
     <div id="info">

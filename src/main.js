@@ -404,19 +404,78 @@ let pausedTime = 0; // Track time spent paused
 // DIFFICULTY & PROGRESSION SYSTEM
 // ============================================
 
+// Base difficulty presets
+const DIFFICULTY_PRESETS = {
+    easy: {
+        name: 'Easy',
+        description: 'Relaxed gameplay - Perfect for beginners',
+        playerHealthMultiplier: 1.5,   // 150 health
+        playerSpeedMultiplier: 1.1,    // 10% faster movement
+        enemySpeedMultiplier: 0.7,     // 30% slower enemies
+        enemyHealthMultiplier: 0.7,    // 30% less health
+        enemyCountMultiplier: 0.7,     // Fewer enemies (rounded down)
+        spawnRateMultiplier: 1.5,      // 50% slower spawn rate (higher = slower)
+        damageMultiplier: 0.7          // Take 30% less damage
+    },
+    medium: {
+        name: 'Medium',
+        description: 'Balanced gameplay - Recommended for most players',
+        playerHealthMultiplier: 1.0,   // 100 health (normal)
+        playerSpeedMultiplier: 1.0,    // Normal movement
+        enemySpeedMultiplier: 1.0,     // Normal enemy speed
+        enemyHealthMultiplier: 1.0,    // Normal enemy health
+        enemyCountMultiplier: 1.0,     // Normal enemy count
+        spawnRateMultiplier: 1.0,      // Normal spawn rate
+        damageMultiplier: 1.0          // Normal damage
+    },
+    hard: {
+        name: 'Hard',
+        description: 'Intense challenge - For experienced players only!',
+        playerHealthMultiplier: 0.75,  // 75 health
+        playerSpeedMultiplier: 0.9,    // 10% slower movement
+        enemySpeedMultiplier: 1.3,     // 30% faster enemies
+        enemyHealthMultiplier: 1.5,    // 50% more health
+        enemyCountMultiplier: 1.3,     // More enemies (rounded up)
+        spawnRateMultiplier: 0.7,      // 30% faster spawn rate (lower = faster)
+        damageMultiplier: 1.5          // Take 50% more damage
+    }
+};
+
+// Current selected difficulty
+let selectedDifficulty = 'medium'; // default
+
 // Difficulty state
 let currentLevel = 1;
 const MAX_LEVEL = 5;
 const CLOVERS_PER_LEVEL = 3; // Every 3 clovers = level up
 
-// Enemy scaling per level
-const DIFFICULTY_SETTINGS = {
+// Base enemy scaling per level (modified by difficulty preset)
+const BASE_DIFFICULTY_SETTINGS = {
     1: { enemySpeed: 0.04, maxEnemies: 3, spawnRate: 0 },
     2: { enemySpeed: 0.05, maxEnemies: 4, spawnRate: 15000 },
     3: { enemySpeed: 0.06, maxEnemies: 5, spawnRate: 12000 },
     4: { enemySpeed: 0.07, maxEnemies: 6, spawnRate: 10000 },
     5: { enemySpeed: 0.08, maxEnemies: 8, spawnRate: 8000 }
 };
+
+// Get difficulty settings for current level and preset
+function getDifficultySettings(level) {
+    const baseSettings = BASE_DIFFICULTY_SETTINGS[level];
+    const preset = DIFFICULTY_PRESETS[selectedDifficulty];
+
+    return {
+        enemySpeed: baseSettings.enemySpeed * preset.enemySpeedMultiplier,
+        maxEnemies: Math.ceil(baseSettings.maxEnemies * preset.enemyCountMultiplier),
+        spawnRate: baseSettings.spawnRate > 0 ? baseSettings.spawnRate * preset.spawnRateMultiplier : 0
+    };
+}
+
+// Rename old DIFFICULTY_SETTINGS references
+const DIFFICULTY_SETTINGS = new Proxy({}, {
+    get: function(target, prop) {
+        return getDifficultySettings(parseInt(prop));
+    }
+});
 
 // Combo system state
 let comboCount = 0;

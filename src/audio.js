@@ -193,6 +193,164 @@ class AudioManager {
         noise.start(startTime);
     }
 
+    // Combo multiplier - escalating excitement (higher pitch for higher combos)
+    playCombo(multiplier) {
+        if (!this.isInitialized || this.isMuted) return;
+
+        const now = this.context.currentTime;
+        const intensity = Math.min(multiplier / 5, 1.5); // Cap intensity at 1.5x
+
+        // Rising arpeggio that gets faster with higher combos
+        const baseFreq = 440 * (1 + (multiplier - 2) * 0.2); // Increase pitch with combo
+        const noteCount = Math.min(3 + multiplier, 6); // More notes for higher combos
+
+        for (let i = 0; i < noteCount; i++) {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = baseFreq * Math.pow(1.5, i / 2); // Musical intervals
+
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+
+            const startTime = now + i * 0.05;
+            const noteLength = 0.12;
+
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.25 * intensity, startTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + noteLength);
+
+            osc.start(startTime);
+            osc.stop(startTime + noteLength + 0.1);
+        }
+
+        // Add excitement with a quick sweep
+        const sweepOsc = this.context.createOscillator();
+        const sweepGain = this.context.createGain();
+
+        sweepOsc.type = 'sawtooth';
+        sweepOsc.frequency.setValueAtTime(baseFreq * 2, now);
+        sweepOsc.frequency.exponentialRampToValueAtTime(baseFreq * 4, now + 0.15);
+
+        sweepOsc.connect(sweepGain);
+        sweepGain.connect(this.sfxGain);
+
+        sweepGain.gain.setValueAtTime(0, now);
+        sweepGain.gain.linearRampToValueAtTime(0.15 * intensity, now + 0.02);
+        sweepGain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+        sweepOsc.start(now);
+        sweepOsc.stop(now + 0.2);
+    }
+
+    // Level up - triumphant ascending phrase
+    playLevelUp() {
+        if (!this.isInitialized || this.isMuted) return;
+
+        const now = this.context.currentTime;
+
+        // Ascending major scale phrase
+        const notes = [
+            { freq: 523.25, time: 0, dur: 0.15 },      // C5
+            { freq: 587.33, time: 0.12, dur: 0.15 },   // D5
+            { freq: 659.25, time: 0.24, dur: 0.15 },   // E5
+            { freq: 783.99, time: 0.36, dur: 0.25 }    // G5 (hold longer)
+        ];
+
+        notes.forEach(note => {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.value = note.freq;
+
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+
+            const startTime = now + note.time;
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+            gain.gain.setValueAtTime(0.3, startTime + note.dur - 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + note.dur);
+
+            osc.start(startTime);
+            osc.stop(startTime + note.dur + 0.1);
+        });
+
+        // Add celebratory chime
+        this.playSparkle(now + 0.3);
+        this.playSparkle(now + 0.4);
+    }
+
+    // UI click - short pleasant beep
+    playUIClick() {
+        if (!this.isInitialized || this.isMuted) return;
+
+        const now = this.context.currentTime;
+        const osc = this.context.createOscillator();
+        const gain = this.context.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = 800;
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.2, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+        osc.start(now);
+        osc.stop(now + 0.1);
+    }
+
+    // Pause sound - descending tone
+    playPause() {
+        if (!this.isInitialized || this.isMuted) return;
+
+        const now = this.context.currentTime;
+        const osc = this.context.createOscillator();
+        const gain = this.context.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(400, now + 0.15);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+        osc.start(now);
+        osc.stop(now + 0.2);
+    }
+
+    // Resume sound - ascending tone
+    playResume() {
+        if (!this.isInitialized || this.isMuted) return;
+
+        const now = this.context.currentTime;
+        const osc = this.context.createOscillator();
+        const gain = this.context.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+        osc.start(now);
+        osc.stop(now + 0.2);
+    }
+
     // Game over - sad descending tone
     playGameOver() {
         if (!this.isInitialized || this.isMuted) return;
