@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Bugdom - Level 1</title>
     <style>
         body {
@@ -292,6 +295,348 @@
             margin-bottom: 4px;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
         }
+
+        /* Mobile touch controls */
+        #touch-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 90;
+        }
+
+        #touch-controls.active {
+            display: block;
+        }
+
+        .touch-joystick {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            pointer-events: all;
+        }
+
+        .joystick-base {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .joystick-stick {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease;
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            #info {
+                font-size: 10px;
+                padding: 5px;
+                top: 5px;
+                left: 5px;
+            }
+
+            #score {
+                font-size: 16px;
+                padding: 8px 12px;
+                top: 5px;
+                right: 5px;
+            }
+
+            #clover-count {
+                font-size: 16px;
+                padding: 8px 12px;
+                top: 5px;
+                right: auto;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            #level-display {
+                font-size: 14px;
+                padding: 6px 12px;
+                top: 40px;
+                right: 5px;
+            }
+
+            #combo-display {
+                font-size: 14px;
+                padding: 6px 12px;
+                top: 75px;
+                right: 5px;
+            }
+
+            #health-container {
+                top: 5px;
+                left: 5px;
+                right: auto;
+                transform: none;
+            }
+
+            #health-bar-wrapper {
+                width: 100px;
+                height: 15px;
+            }
+
+            #health-label {
+                font-size: 10px;
+            }
+
+            #health-text {
+                font-size: 9px;
+            }
+
+            #audio-controls {
+                display: none;
+            }
+
+            #minimap-container {
+                display: none;
+            }
+
+            #start-overlay h1 {
+                font-size: 36px;
+            }
+
+            #start-overlay p {
+                font-size: 14px;
+                padding: 0 20px;
+            }
+
+            #start-button {
+                padding: 15px 35px;
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #info {
+                font-size: 8px;
+                padding: 3px;
+            }
+
+            #score {
+                font-size: 14px;
+                padding: 6px 10px;
+            }
+
+            #clover-count {
+                font-size: 14px;
+                padding: 6px 10px;
+            }
+
+            #level-display {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+
+            #combo-display {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+        }
+
+        /* Help Button */
+        #help-button {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, rgba(74, 157, 46, 0.9), rgba(34, 139, 34, 0.9));
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #help-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Welcome Message */
+        #welcome-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 30px 40px;
+            border-radius: 15px;
+            border: 3px solid #4a9d2e;
+            z-index: 999;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            animation: welcomeFadeIn 0.5s ease-out;
+            max-width: 500px;
+        }
+        #welcome-message.hiding {
+            animation: welcomeFadeOut 0.5s ease-out forwards;
+        }
+        @keyframes welcomeFadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes welcomeFadeOut {
+            from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            to { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+        #welcome-message h2 {
+            color: #4a9d2e;
+            margin: 0 0 15px 0;
+            font-size: 32px;
+        }
+        #welcome-message p {
+            margin: 10px 0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        #welcome-message .key-hint {
+            color: #ffcc00;
+            font-weight: bold;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        /* Help Overlay */
+        #help-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1001;
+            display: none;
+            overflow-y: auto;
+            animation: helpFadeIn 0.3s ease-out;
+        }
+        #help-overlay.show {
+            display: block;
+        }
+        @keyframes helpFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #help-content {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 40px;
+            background: rgba(20, 20, 20, 0.95);
+            border-radius: 20px;
+            border: 3px solid #4a9d2e;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+        }
+        #help-content h1 {
+            color: #4a9d2e;
+            text-align: center;
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+        #help-content h2 {
+            color: #5db83c;
+            font-size: 28px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4a9d2e;
+            padding-bottom: 8px;
+        }
+        #help-content h3 {
+            color: #78c758;
+            font-size: 22px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        #help-content p, #help-content ul {
+            color: #e0e0e0;
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        #help-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        #help-content ul li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        #help-content ul li:before {
+            content: "▸";
+            color: #4a9d2e;
+            font-weight: bold;
+            position: absolute;
+            left: 10px;
+        }
+        .key-combo {
+            display: inline-block;
+            background: rgba(74, 157, 46, 0.3);
+            border: 2px solid #4a9d2e;
+            border-radius: 5px;
+            padding: 4px 12px;
+            margin: 0 4px;
+            font-family: monospace;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        .highlight {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        .tip-box {
+            background: rgba(255, 140, 0, 0.15);
+            border-left: 4px solid #ff8c00;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .tip-box strong {
+            color: #ffa500;
+        }
+        #help-close {
+            display: block;
+            margin: 30px auto 0;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #4a9d2e, #228b22);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #help-close:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -335,6 +680,127 @@
         <div id="minimap-label">MAP</div>
         <canvas id="minimap" width="150" height="150"></canvas>
     </div>
+    <div id="touch-controls">
+        <div class="touch-joystick">
+            <div class="joystick-base">
+                <div class="joystick-stick"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Button -->
+    <button id="help-button" title="Help (H)">?</button>
+
+    <!-- Welcome Message -->
+    <div id="welcome-message" class="hidden">
+        <h2>Welcome to Bugdom!</h2>
+        <p>You are a friendly bug exploring a colorful garden world.</p>
+        <p>Your goal: <span class="highlight">Collect all 13 clovers</span> to win!</p>
+        <p>Watch out for enemy ants and bees along the way.</p>
+        <p class="key-hint">Press <span class="key-combo">H</span> anytime for help</p>
+    </div>
+
+    <!-- Help Overlay -->
+    <div id="help-overlay">
+        <div id="help-content">
+            <h1>BUGDOM - How to Play</h1>
+
+            <h2>🎯 Game Objective</h2>
+            <p>Collect all <span class="highlight">13 clovers</span> scattered across the garden to win the game!</p>
+
+            <h2>🎮 Controls</h2>
+            <h3>Movement</h3>
+            <ul>
+                <li><span class="key-combo">W</span> or <span class="key-combo">↑</span> - Move Forward</li>
+                <li><span class="key-combo">S</span> or <span class="key-combo">↓</span> - Move Backward</li>
+                <li><span class="key-combo">A</span> or <span class="key-combo">←</span> - Turn Left</li>
+                <li><span class="key-combo">D</span> or <span class="key-combo">→</span> - Turn Right</li>
+            </ul>
+
+            <h3>Interface</h3>
+            <ul>
+                <li><span class="key-combo">H</span> - Toggle this help screen</li>
+                <li><span class="key-combo">ESC</span> - Close help screen</li>
+                <li>🔊 Button - Mute/unmute all sounds</li>
+                <li>Volume Sliders - Adjust music (🎵) and sound effects (🔔)</li>
+            </ul>
+
+            <h2>🏆 Scoring System</h2>
+            <ul>
+                <li><span class="highlight">Clovers:</span> Each clover is worth <strong>100 points</strong></li>
+                <li><span class="highlight">Combo Bonus:</span> Collect clovers quickly (within 10 seconds) to earn combo multipliers!</li>
+                <li>2x Combo: +100 bonus points</li>
+                <li>3x Combo: +200 bonus points</li>
+                <li>4x Combo: +400 bonus points</li>
+                <li>5x+ Combo: Even higher bonuses!</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Pro Tip:</strong> The faster you collect clovers in succession, the higher your combo multiplier and score!
+            </div>
+
+            <h2>💚 Health System</h2>
+            <ul>
+                <li>You start with <strong>100 health points</strong></li>
+                <li>Contact with enemies damages you</li>
+                <li><span class="highlight" style="color: #22cc22;">Green bar</span> = Healthy (50-100 HP)</li>
+                <li><span class="highlight" style="color: #ffaa00;">Orange bar</span> = Warning (25-49 HP)</li>
+                <li><span class="highlight" style="color: #dd2222;">Red pulsing bar</span> = Critical (0-24 HP)</li>
+                <li>Game ends when health reaches 0</li>
+            </ul>
+
+            <h2>👾 Enemies</h2>
+            <ul>
+                <li><span class="highlight">Red Ants:</span> Patrol the ground - avoid contact!</li>
+                <li><span class="highlight">Flying Bees:</span> Buzz through the air - stay alert!</li>
+                <li>Higher difficulty levels spawn more enemies</li>
+            </ul>
+
+            <h2>📊 Difficulty Levels</h2>
+            <p>As you collect more clovers, the difficulty increases:</p>
+            <ul>
+                <li><strong>Level 1:</strong> 0-2 clovers - Easy (3 enemies)</li>
+                <li><strong>Level 2:</strong> 3-5 clovers - Medium (5 enemies)</li>
+                <li><strong>Level 3:</strong> 6-9 clovers - Hard (8 enemies)</li>
+                <li><strong>Level 4:</strong> 10+ clovers - Expert (12 enemies)</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Strategy Tip:</strong> Plan your clover collection route! The early levels are easier, so grab the distant clovers first while you have fewer enemies to avoid.
+            </div>
+
+            <h2>🗺️ Minimap</h2>
+            <p>The minimap in the bottom-right shows:</p>
+            <ul>
+                <li><span class="highlight" style="color: #00ff00;">Green triangle</span> - Your position and direction</li>
+                <li><span class="highlight" style="color: #ff0000;">Red dots</span> - Enemy ants</li>
+                <li><span class="highlight" style="color: #ff6600;">Orange dots</span> - Enemy bees</li>
+                <li><span class="highlight" style="color: #ffff00;">Yellow dots</span> - Uncollected clovers</li>
+            </ul>
+
+            <h2>🎵 Audio Controls</h2>
+            <ul>
+                <li>Background music creates atmosphere</li>
+                <li>Sound effects for collecting, damage, victory, and game over</li>
+                <li>Adjust volumes independently or mute all sounds</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Did You Know?</strong> The game features day/night cycles, particle effects when you move through grass, and dynamic lighting for an immersive experience!
+            </div>
+
+            <h2>🏁 Winning & Losing</h2>
+            <ul>
+                <li><strong>Victory:</strong> Collect all 13 clovers to win!</li>
+                <li><strong>Game Over:</strong> Your health drops to 0</li>
+                <li>Both outcomes offer a "Play Again" button to restart</li>
+            </ul>
+
+            <button id="help-close">Close (ESC or H)</button>
+        </div>
+    </div>
+
+    <script type="module" src="/src/touch.js"></script>
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

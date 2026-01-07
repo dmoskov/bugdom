@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { audioManager } from './audio.js';
 import { DayNightCycle } from './daynight.js';
+import { getTouchControls } from './touch.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -1571,10 +1572,13 @@ function animateBugLegs(deltaTime) {
 
 // Update player bug position based on input
 function updatePlayerBug() {
-    const moveForward = keys.w || keys.ArrowUp;
-    const moveBackward = keys.s || keys.ArrowDown;
-    const turnLeft = keys.a || keys.ArrowLeft;
-    const turnRight = keys.d || keys.ArrowRight;
+    // Get touch input if mobile
+    const touchInput = getTouchControls();
+
+    const moveForward = keys.w || keys.ArrowUp || touchInput.forward;
+    const moveBackward = keys.s || keys.ArrowDown || touchInput.backward;
+    const turnLeft = keys.a || keys.ArrowLeft || touchInput.left;
+    const turnRight = keys.d || keys.ArrowRight || touchInput.right;
 
     // Rotation
     if (turnLeft) {
