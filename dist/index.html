@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Bugdom - Level 1</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: linear-gradient(135deg, rgba(34, 139, 34, 0.8), rgba(0, 100, 0, 0.8));
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        #health-container {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        #health-label {
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        #health-bar-wrapper {
+            width: 200px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 10px;
+            padding: 3px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        #health-bar {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #22cc22, #44dd44);
+            border-radius: 7px;
+            transition: width 0.3s ease, background 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3);
+        }
+        #health-bar.warning {
+            background: linear-gradient(90deg, #ffaa00, #ffcc33);
+        }
+        #health-bar.critical {
+            background: linear-gradient(90deg, #dd2222, #ff4444);
+            animation: pulse 0.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3); }
+            50% { opacity: 0.7; box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3), 0 0 10px rgba(255, 0, 0, 0.5); }
+        }
+        #health-text {
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+        #clover-count {
+            position: absolute;
+            top: 10px;
+            right: 360px;
+            color: white;
+            background: linear-gradient(135deg, rgba(34, 139, 34, 0.8), rgba(0, 100, 0, 0.8));
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        canvas {
+            display: block;
+        }
+        #audio-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 10px 15px;
+            border-radius: 8px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 14px;
+        }
+        #audio-controls button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        #audio-controls button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        #audio-controls button.muted {
+            background: rgba(255, 0, 0, 0.3);
+        }
+        .volume-slider {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .volume-slider input[type="range"] {
+            width: 70px;
+            cursor: pointer;
+        }
+        #start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #start-overlay h1 {
+            color: #4a9d2e;
+            font-size: 64px;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+        }
+        #start-overlay p {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        #difficulty-selection {
+            margin-bottom: 30px;
+        }
+        #difficulty-selection h2 {
+            color: #ffcc00;
+            font-size: 24px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .difficulty-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .difficulty-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            min-width: 140px;
+        }
+        .difficulty-btn.easy {
+            background: linear-gradient(135deg, #22dd22, #33ee33);
+            color: #003300;
+        }
+        .difficulty-btn.easy:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(34, 221, 34, 0.5);
+        }
+        .difficulty-btn.medium {
+            background: linear-gradient(135deg, #ff9900, #ffaa00);
+            color: #330000;
+        }
+        .difficulty-btn.medium:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(255, 153, 0, 0.5);
+        }
+        .difficulty-btn.hard {
+            background: linear-gradient(135deg, #dd2222, #ff3333);
+            color: white;
+        }
+        .difficulty-btn.hard:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(221, 34, 34, 0.5);
+        }
+        .difficulty-btn.selected {
+            border-color: white;
+            transform: scale(1.1);
+        }
+        .difficulty-description {
+            color: #aaa;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+            min-height: 40px;
+        }
+        #start-button {
+            background: linear-gradient(135deg, #4a9d2e, #228b22);
+            border: none;
+            color: white;
+            padding: 20px 50px;
+            font-size: 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #start-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        .hidden {
+            display: none !important;
+        }
+        /* Level display */
+        #level-display {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            color: white;
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.8), rgba(75, 0, 130, 0.8));
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: transform 0.3s ease;
+        }
+        #level-display.level-up {
+            animation: levelUpPulse 0.5s ease-out;
+        }
+        @keyframes levelUpPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        /* Combo display */
+        #combo-display {
+            position: absolute;
+            top: 115px;
+            right: 10px;
+            color: #ffcc00;
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.9), rgba(255, 69, 0, 0.9));
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #combo-display.active {
+            opacity: 1;
+            animation: comboPulse 0.3s ease-out;
+        }
+        @keyframes comboPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        /* Combo popup styles */
+        @keyframes comboFade {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -70%) scale(1); opacity: 0; }
+        }
+        .combo-popup .combo-multiplier {
+            font-size: 48px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 200, 0, 0.5);
+        }
+        .combo-popup .combo-points {
+            font-size: 32px;
+            color: #00ff00;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        /* Level up popup styles */
+        @keyframes levelUpFade {
+            0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+            15% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+            85% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        }
+        .levelup-popup .levelup-text {
+            font-size: 56px;
+            font-weight: bold;
+            color: #9933ff;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5), 0 0 30px rgba(153, 51, 255, 0.6);
+        }
+        .levelup-popup .levelup-warning {
+            font-size: 22px;
+            color: #ff6666;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            margin-top: 10px;
+        }
+        /* Minimap styles */
+        #minimap-container {
+            position: absolute;
+            bottom: 70px;
+            right: 10px;
+            z-index: 100;
+        }
+        #minimap {
+            width: 150px;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+        #minimap-label {
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            margin-bottom: 4px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Mobile touch controls */
+        #touch-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 90;
+        }
+
+        #touch-controls.active {
+            display: block;
+        }
+
+        .touch-joystick {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            pointer-events: all;
+        }
+
+        .joystick-base {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.05));
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .joystick-stick {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease;
+        }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            #info {
+                font-size: 10px;
+                padding: 5px;
+                top: 5px;
+                left: 5px;
+            }
+
+            #score {
+                font-size: 16px;
+                padding: 8px 12px;
+                top: 5px;
+                right: 5px;
+            }
+
+            #clover-count {
+                font-size: 16px;
+                padding: 8px 12px;
+                top: 5px;
+                right: auto;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+
+            #level-display {
+                font-size: 14px;
+                padding: 6px 12px;
+                top: 40px;
+                right: 5px;
+            }
+
+            #combo-display {
+                font-size: 14px;
+                padding: 6px 12px;
+                top: 75px;
+                right: 5px;
+            }
+
+            #health-container {
+                top: 5px;
+                left: 5px;
+                right: auto;
+                transform: none;
+            }
+
+            #health-bar-wrapper {
+                width: 100px;
+                height: 15px;
+            }
+
+            #health-label {
+                font-size: 10px;
+            }
+
+            #health-text {
+                font-size: 9px;
+            }
+
+            #audio-controls {
+                display: none;
+            }
+
+            #minimap-container {
+                display: none;
+            }
+
+            #start-overlay h1 {
+                font-size: 36px;
+            }
+
+            #start-overlay p {
+                font-size: 14px;
+                padding: 0 20px;
+            }
+
+            #difficulty-selection h2 {
+                font-size: 18px;
+            }
+
+            .difficulty-btn {
+                font-size: 14px;
+                padding: 10px 20px;
+                min-width: 100px;
+            }
+
+            .difficulty-description {
+                font-size: 12px;
+                padding: 0 20px;
+            }
+
+            #start-button {
+                padding: 15px 35px;
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #info {
+                font-size: 8px;
+                padding: 3px;
+            }
+
+            #score {
+                font-size: 14px;
+                padding: 6px 10px;
+            }
+
+            #clover-count {
+                font-size: 14px;
+                padding: 6px 10px;
+            }
+
+            #level-display {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+
+            #combo-display {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+        }
+
+        /* Help Button */
+        #help-button {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, rgba(74, 157, 46, 0.9), rgba(34, 139, 34, 0.9));
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #help-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Welcome Message */
+        #welcome-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 30px 40px;
+            border-radius: 15px;
+            border: 3px solid #4a9d2e;
+            z-index: 999;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            animation: welcomeFadeIn 0.5s ease-out;
+            max-width: 500px;
+        }
+        #welcome-message.hiding {
+            animation: welcomeFadeOut 0.5s ease-out forwards;
+        }
+        @keyframes welcomeFadeIn {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes welcomeFadeOut {
+            from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            to { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+        #welcome-message h2 {
+            color: #4a9d2e;
+            margin: 0 0 15px 0;
+            font-size: 32px;
+        }
+        #welcome-message p {
+            margin: 10px 0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        #welcome-message .key-hint {
+            color: #ffcc00;
+            font-weight: bold;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        /* Help Overlay */
+        #help-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1001;
+            display: none;
+            overflow-y: auto;
+            animation: helpFadeIn 0.3s ease-out;
+        }
+        #help-overlay.show {
+            display: block;
+        }
+        @keyframes helpFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #help-content {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 40px;
+            background: rgba(20, 20, 20, 0.95);
+            border-radius: 20px;
+            border: 3px solid #4a9d2e;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+        }
+        #help-content h1 {
+            color: #4a9d2e;
+            text-align: center;
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+        #help-content h2 {
+            color: #5db83c;
+            font-size: 28px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4a9d2e;
+            padding-bottom: 8px;
+        }
+        #help-content h3 {
+            color: #78c758;
+            font-size: 22px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        #help-content p, #help-content ul {
+            color: #e0e0e0;
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+        }
+        #help-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        #help-content ul li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        #help-content ul li:before {
+            content: "▸";
+            color: #4a9d2e;
+            font-weight: bold;
+            position: absolute;
+            left: 10px;
+        }
+        .key-combo {
+            display: inline-block;
+            background: rgba(74, 157, 46, 0.3);
+            border: 2px solid #4a9d2e;
+            border-radius: 5px;
+            padding: 4px 12px;
+            margin: 0 4px;
+            font-family: monospace;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        .highlight {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+        .tip-box {
+            background: rgba(255, 140, 0, 0.15);
+            border-left: 4px solid #ff8c00;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .tip-box strong {
+            color: #ffa500;
+        }
+        #help-close {
+            display: block;
+            margin: 30px auto 0;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #4a9d2e, #228b22);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #help-close:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Pause Overlay */
+        #pause-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: pauseFadeIn 0.3s ease-out;
+        }
+        @keyframes pauseFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #pause-overlay h1 {
+            color: #4a9d2e;
+            font-size: 64px;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+        }
+        #pause-overlay .pause-buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #pause-overlay button {
+            padding: 18px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #4a9d2e, #228b22);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            min-width: 150px;
+        }
+        #pause-overlay button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+        #pause-overlay button.restart-button {
+            background: linear-gradient(135deg, #cc3333, #aa2222);
+        }
+        #pause-overlay button.restart-button:hover {
+            background: linear-gradient(135deg, #dd4444, #bb3333);
+        }
+        #pause-overlay .pause-hint {
+            color: #aaa;
+            font-size: 16px;
+            margin-top: 30px;
+        }
+        #pause-overlay .key-combo {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        /* Pause Button (in-game) */
+        #pause-button {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(74, 157, 46, 0.9), rgba(34, 139, 34, 0.9));
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 8px;
+            padding: 8px 20px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        #pause-button:hover {
+            transform: translateX(-50%) scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            #pause-button {
+                font-size: 14px;
+                padding: 6px 15px;
+                top: 5px;
+            }
+            #pause-overlay h1 {
+                font-size: 42px;
+            }
+            #pause-overlay button {
+                padding: 15px 30px;
+                font-size: 18px;
+                min-width: 120px;
+            }
+        }
+    </style>
+  <script type="module" crossorigin src="/assets/index-C1ITemYl.js"></script>
+</head>
+<body>
+    <div id="start-overlay">
+        <h1>BUGDOM</h1>
+        <p>Collect all 13 clovers to win!<br>
+        Avoid enemy ants and bees!<br>
+        <span style="color: #ffcc00;">Collect quickly for COMBO bonuses!</span><br>
+        Use WASD or Arrow keys to move</p>
+
+        <div id="difficulty-selection">
+            <h2>Select Difficulty</h2>
+            <div class="difficulty-buttons">
+                <button class="difficulty-btn easy" data-difficulty="easy">
+                    🟢 EASY
+                </button>
+                <button class="difficulty-btn medium selected" data-difficulty="medium">
+                    🟡 MEDIUM
+                </button>
+                <button class="difficulty-btn hard" data-difficulty="hard">
+                    🔴 HARD
+                </button>
+            </div>
+            <div class="difficulty-description" id="difficulty-desc">
+                Balanced gameplay - Recommended for most players
+            </div>
+        </div>
+
+        <button id="start-button">Click to Start</button>
+    </div>
+    <div id="info">
+        <strong>Bugdom</strong><br>
+        W/Up: Forward | S/Down: Backward<br>
+        A/Left: Turn left | D/Right: Turn right<br>
+        Collect clovers fast for combos!
+    </div>
+    <button id="pause-button" title="Pause (P or Space)">⏸ PAUSE</button>
+    <div id="clover-count">Clovers: 0/13</div>
+    <div id="level-display">Level 1</div>
+    <div id="combo-display"></div>
+    <div id="health-container">
+        <div id="health-label">HEALTH</div>
+        <div id="health-bar-wrapper">
+            <div id="health-bar"></div>
+        </div>
+        <div id="health-text">100 / 100</div>
+    </div>
+    <div id="score">Score: 0</div>
+    <div id="audio-controls">
+        <button id="mute-btn" title="Toggle Sound">🔊</button>
+        <div class="volume-slider">
+            <span>🎵</span>
+            <input type="range" id="music-volume" min="0" max="100" value="30" title="Music Volume">
+        </div>
+        <div class="volume-slider">
+            <span>🔔</span>
+            <input type="range" id="sfx-volume" min="0" max="100" value="60" title="SFX Volume">
+        </div>
+    </div>
+    <div id="minimap-container">
+        <div id="minimap-label">MAP</div>
+        <canvas id="minimap" width="150" height="150"></canvas>
+    </div>
+    <div id="touch-controls">
+        <div class="touch-joystick">
+            <div class="joystick-base">
+                <div class="joystick-stick"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Button -->
+    <button id="help-button" title="Help (H)">?</button>
+
+    <!-- Welcome Message -->
+    <div id="welcome-message" class="hidden">
+        <h2>Welcome to Bugdom!</h2>
+        <p>You are a friendly bug exploring a colorful garden world.</p>
+        <p>Your goal: <span class="highlight">Collect all 13 clovers</span> to win!</p>
+        <p>Watch out for enemy ants and bees along the way.</p>
+        <p class="key-hint">Press <span class="key-combo">H</span> anytime for help</p>
+    </div>
+
+    <!-- Pause Overlay -->
+    <div id="pause-overlay" class="hidden">
+        <h1>⏸ PAUSED</h1>
+        <div class="pause-buttons">
+            <button id="resume-button">▶ Resume</button>
+            <button id="restart-button" class="restart-button">🔄 Restart</button>
+        </div>
+        <div class="pause-hint">
+            Press <span class="key-combo">ESC</span>, <span class="key-combo">P</span>, or <span class="key-combo">SPACE</span> to resume
+        </div>
+    </div>
+
+    <!-- Help Overlay -->
+    <div id="help-overlay">
+        <div id="help-content">
+            <h1>BUGDOM - How to Play</h1>
+
+            <h2>🎯 Game Objective</h2>
+            <p>Collect all <span class="highlight">13 clovers</span> scattered across the garden to win the game!</p>
+
+            <h2>🎮 Controls</h2>
+            <h3>Movement</h3>
+            <ul>
+                <li><span class="key-combo">W</span> or <span class="key-combo">↑</span> - Move Forward</li>
+                <li><span class="key-combo">S</span> or <span class="key-combo">↓</span> - Move Backward</li>
+                <li><span class="key-combo">A</span> or <span class="key-combo">←</span> - Turn Left</li>
+                <li><span class="key-combo">D</span> or <span class="key-combo">→</span> - Turn Right</li>
+            </ul>
+
+            <h3>Interface</h3>
+            <ul>
+                <li><span class="key-combo">H</span> - Toggle this help screen</li>
+                <li><span class="key-combo">ESC</span> - Close help screen</li>
+                <li>🔊 Button - Mute/unmute all sounds</li>
+                <li>Volume Sliders - Adjust music (🎵) and sound effects (🔔)</li>
+            </ul>
+
+            <h2>🏆 Scoring System</h2>
+            <ul>
+                <li><span class="highlight">Clovers:</span> Each clover is worth <strong>100 points</strong></li>
+                <li><span class="highlight">Combo Bonus:</span> Collect clovers quickly (within 10 seconds) to earn combo multipliers!</li>
+                <li>2x Combo: +100 bonus points</li>
+                <li>3x Combo: +200 bonus points</li>
+                <li>4x Combo: +400 bonus points</li>
+                <li>5x+ Combo: Even higher bonuses!</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Pro Tip:</strong> The faster you collect clovers in succession, the higher your combo multiplier and score!
+            </div>
+
+            <h2>💚 Health System</h2>
+            <ul>
+                <li>You start with <strong>100 health points</strong></li>
+                <li>Contact with enemies damages you</li>
+                <li><span class="highlight" style="color: #22cc22;">Green bar</span> = Healthy (50-100 HP)</li>
+                <li><span class="highlight" style="color: #ffaa00;">Orange bar</span> = Warning (25-49 HP)</li>
+                <li><span class="highlight" style="color: #dd2222;">Red pulsing bar</span> = Critical (0-24 HP)</li>
+                <li>Game ends when health reaches 0</li>
+            </ul>
+
+            <h2>👾 Enemies</h2>
+            <ul>
+                <li><span class="highlight">Red Ants:</span> Patrol the ground - avoid contact!</li>
+                <li><span class="highlight">Flying Bees:</span> Buzz through the air - stay alert!</li>
+                <li>Higher difficulty levels spawn more enemies</li>
+            </ul>
+
+            <h2>📊 Difficulty Levels</h2>
+            <p>As you collect more clovers, the difficulty increases:</p>
+            <ul>
+                <li><strong>Level 1:</strong> 0-2 clovers - Easy (3 enemies)</li>
+                <li><strong>Level 2:</strong> 3-5 clovers - Medium (5 enemies)</li>
+                <li><strong>Level 3:</strong> 6-9 clovers - Hard (8 enemies)</li>
+                <li><strong>Level 4:</strong> 10+ clovers - Expert (12 enemies)</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Strategy Tip:</strong> Plan your clover collection route! The early levels are easier, so grab the distant clovers first while you have fewer enemies to avoid.
+            </div>
+
+            <h2>🗺️ Minimap</h2>
+            <p>The minimap in the bottom-right shows:</p>
+            <ul>
+                <li><span class="highlight" style="color: #00ff00;">Green triangle</span> - Your position and direction</li>
+                <li><span class="highlight" style="color: #ff0000;">Red dots</span> - Enemy ants</li>
+                <li><span class="highlight" style="color: #ff6600;">Orange dots</span> - Enemy bees</li>
+                <li><span class="highlight" style="color: #ffff00;">Yellow dots</span> - Uncollected clovers</li>
+            </ul>
+
+            <h2>🎵 Audio Controls</h2>
+            <ul>
+                <li>Background music creates atmosphere</li>
+                <li>Sound effects for collecting, damage, victory, and game over</li>
+                <li>Adjust volumes independently or mute all sounds</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Did You Know?</strong> The game features day/night cycles, particle effects when you move through grass, and dynamic lighting for an immersive experience!
+            </div>
+
+            <h2>🏁 Winning & Losing</h2>
+            <ul>
+                <li><strong>Victory:</strong> Collect all 13 clovers to win!</li>
+                <li><strong>Game Over:</strong> Your health drops to 0</li>
+                <li>Both outcomes offer a "Play Again" button to restart</li>
+            </ul>
+
+            <button id="help-close">Close (ESC or H)</button>
+        </div>
+    </div>
+
+</body>
+</html>
