@@ -86,6 +86,9 @@ class DayNightCycle {
         this.originalSkyColor = scene.background.clone();
         this.originalFogColor = scene.fog ? scene.fog.color.clone() : new THREE.Color(0x87ceeb);
 
+        // Point lights array for nighttime illumination
+        this.pointLights = [];
+
         // Create celestial bodies
         this.createSun();
         this.createMoon();
@@ -93,6 +96,9 @@ class DayNightCycle {
 
         // Create firefly system
         this.createFireflies();
+
+        // Create point lights (streetlamps/windows)
+        this.createPointLights();
 
         // Create time display element
         this.createTimeDisplay();
@@ -249,6 +255,90 @@ class DayNightCycle {
 
         this.fireflies.instanceMatrix.needsUpdate = true;
         this.scene.add(this.fireflies);
+    }
+
+    createPointLights() {
+        // Create streetlamp-style point lights around the scene
+        // These will turn on at night and provide ambient lighting
+
+        const lampPositions = [
+            // Ring of streetlamps around the outer area
+            { x: -35, z: -35 },
+            { x: -35, z: 0 },
+            { x: -35, z: 35 },
+            { x: 0, z: -35 },
+            { x: 0, z: 35 },
+            { x: 35, z: -35 },
+            { x: 35, z: 0 },
+            { x: 35, z: 35 },
+            // Inner ring
+            { x: -20, z: -20 },
+            { x: -20, z: 20 },
+            { x: 20, z: -20 },
+            { x: 20, z: 20 },
+            // Center area
+            { x: 0, z: 0 }
+        ];
+
+        lampPositions.forEach(pos => {
+            // Create point light
+            const pointLight = new THREE.PointLight(
+                0xffaa44, // Warm orange-yellow color
+                0, // Start with 0 intensity (will fade in at night)
+                15, // Distance/range
+                2 // Decay
+            );
+            pointLight.position.set(pos.x, 3, pos.z); // Elevated position
+            pointLight.castShadow = true;
+
+            // Optimize shadow map for point lights
+            pointLight.shadow.mapSize.width = 512; // Lower resolution for performance
+            pointLight.shadow.mapSize.height = 512;
+            pointLight.shadow.camera.near = 0.5;
+            pointLight.shadow.camera.far = 20;
+
+            this.scene.add(pointLight);
+            this.pointLights.push({
+                light: pointLight,
+                baseIntensity: 0.8, // Maximum intensity at night
+                targetIntensity: 0 // Current target intensity
+            });
+
+            // Create visual lamp post for the light
+            this.createLampPost(pos.x, pos.z, pointLight);
+        });
+    }
+
+    createLampPost(x, z, pointLight) {
+        // Lamp post
+        const postGeometry = new THREE.CylinderGeometry(0.08, 0.1, 3, 8);
+        const postMaterial = new THREE.MeshStandardMaterial({
+            color: 0x333333,
+            roughness: 0.7,
+            metalness: 0.5
+        });
+        const post = new THREE.Mesh(postGeometry, postMaterial);
+        post.position.set(x, 1.5, z);
+        post.castShadow = true;
+        post.receiveShadow = true;
+        this.scene.add(post);
+
+        // Lamp head (glowing sphere)
+        const lampGeometry = new THREE.SphereGeometry(0.25, 16, 16);
+        const lampMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffaa44,
+            emissive: 0xffaa44,
+            emissiveIntensity: 0, // Start off
+            roughness: 0.3,
+            metalness: 0.1
+        });
+        const lamp = new THREE.Mesh(lampGeometry, lampMaterial);
+        lamp.position.set(x, 3, z);
+        this.scene.add(lamp);
+
+        // Store lamp reference with point light for later updates
+        pointLight.userData.lampMesh = lamp;
+        pointLight.userData.lampMaterial = lampMaterial;
     }
 
     createTimeDisplay() {
