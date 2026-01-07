@@ -707,6 +707,74 @@ class DayNightCycle {
         this.stars.material.opacity = starOpacity;
     }
 
+    updatePointLights(deltaTime) {
+        // Point lights (streetlamps) activate at night and during sunset/sunrise transitions
+        // Calculate target intensity based on current phase and progress
+        let targetIntensity = 0;
+
+        if (this.currentPhase === PHASES.NIGHT) {
+            // Full brightness at night
+            targetIntensity = 1.0;
+        } else if (this.currentPhase === PHASES.SUNSET) {
+            // Fade in during sunset
+            const sunsetProgress = (this.cycleProgress - PHASE_TIMING.SUNSET_START) /
+                                   (PHASE_TIMING.SUNSET_END - PHASE_TIMING.SUNSET_START);
+            targetIntensity = Math.max(0, sunsetProgress - 0.2) * 1.25;
+            targetIntensity = Math.min(1, targetIntensity);
+        } else if (this.currentPhase === PHASES.SUNRISE) {
+            // Fade out during sunrise
+            const sunriseProgress = (this.cycleProgress - PHASE_TIMING.SUNRISE_START) /
+                                    (PHASE_TIMING.SUNRISE_END - PHASE_TIMING.SUNRISE_START);
+            targetIntensity = Math.max(0, 1.0 - sunriseProgress * 1.2);
+        }
+
+        // Update each point light with smooth lerp transition and optional flicker
+        this.pointLights.forEach((lampData, index) => {
+            // Update target intensity
+            lampData.targetIntensity = targetIntensity;
+
+            // Smooth lerp to target intensity (creates fade effect)
+            const lerpFactor = 0.05; // Slower lerp = smoother transition
+            const currentIntensity = lampData.light.intensity;
+            let newIntensity = THREE.MathUtils.lerp(
+                currentIntensity,
+                lampData.baseIntensity * lampData.targetIntensity,
+                lerpFactor
+            );
+
+            // Add subtle flickering effect when lamps are on (> 10% intensity)
+            if (newIntensity > 0.1) {
+                // Use time-based noise for natural flicker
+                const time = this.cycleTime;
+                const flickerPhase = index * 1.234 + time * 0.8; // Different phase per lamp
+
+                // Combine multiple sine waves for natural flicker
+                const flicker1 = Math.sin(flickerPhase * 3.7) * 0.015;
+                const flicker2 = Math.sin(flickerPhase * 7.3) * 0.008;
+                const flicker3 = Math.sin(flickerPhase * 13.1) * 0.004;
+
+                const totalFlicker = flicker1 + flicker2 + flicker3;
+                newIntensity += totalFlicker;
+
+                // Occasional stronger flicker (simulate bug or power fluctuation)
+                if (Math.sin(flickerPhase * 0.37) > 0.98) {
+                    newIntensity *= 0.85;
+                }
+            }
+
+            // Clamp intensity to valid range
+            newIntensity = Math.max(0, Math.min(lampData.baseIntensity, newIntensity));
+            lampData.light.intensity = newIntensity;
+
+            // Update emissive material on lamp mesh to match light intensity
+            if (lampData.light.userData.lampMaterial) {
+                const emissiveMaterial = lampData.light.userData.lampMaterial;
+                const emissiveIntensity = newIntensity / lampData.baseIntensity;
+                emissiveMaterial.emissiveIntensity = emissiveIntensity;
+            }
+        });
+    }
+
     updateTimeDisplay() {
         if (!this.timeDisplay) return;
 
