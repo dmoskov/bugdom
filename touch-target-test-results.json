@@ -1,0 +1,464 @@
+{
+  "timestamp": "2026-01-08T03:08:34.902853",
+  "viewports": {
+    "iPhone SE": {
+      "width": 320,
+      "minSize": 48,
+      "tests": [
+        {
+          "selector": "#audio-controls button",
+          "name": "Audio Control Buttons",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 24,
+            "height": 16
+          },
+          "status": "fail",
+          "issues": [
+            "Width 24px is less than minimum 48px",
+            "Height 16px is less than minimum 48px"
+          ]
+        },
+        {
+          "selector": ".volume-slider input[type=\"range\"]",
+          "name": "Volume Sliders",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 70,
+            "height": 44
+          },
+          "status": "fail",
+          "issues": [
+            "Height 44px is less than minimum 48px",
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": ".difficulty-btn",
+          "name": "Difficulty Buttons",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 140,
+            "height": 44
+          },
+          "status": "fail",
+          "issues": [
+            "Height 44px is less than minimum 48px",
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#start-button",
+          "name": "Start Button",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 80,
+            "height": 84
+          },
+          "status": "pass",
+          "issues": []
+        },
+        {
+          "selector": "#help-button",
+          "name": "Help Button",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 44,
+            "height": 44
+          },
+          "status": "fail",
+          "issues": [
+            "Width 44px is less than minimum 48px",
+            "Height 44px is less than minimum 48px",
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#pause-button",
+          "name": "Pause Button",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 44,
+            "height": 44
+          },
+          "status": "fail",
+          "issues": [
+            "Width 44px is less than minimum 48px",
+            "Height 44px is less than minimum 48px",
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#help-close",
+          "name": "Help Close Button",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 80,
+            "height": 30
+          },
+          "status": "fail",
+          "issues": [
+            "Height 30px is less than minimum 48px"
+          ]
+        },
+        {
+          "selector": "#pause-overlay button",
+          "name": "Pause Overlay Buttons",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 230,
+            "height": 36
+          },
+          "status": "fail",
+          "issues": [
+            "Height 36px is less than minimum 48px"
+          ]
+        },
+        {
+          "selector": "#resume-button",
+          "name": "Resume Button",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 0,
+            "height": 0
+          },
+          "status": "fail",
+          "issues": [
+            "Width 0px is less than minimum 48px",
+            "Height 0px is less than minimum 48px"
+          ]
+        },
+        {
+          "selector": "#restart-button",
+          "name": "Restart Button",
+          "viewport": "iPhone SE",
+          "expected": 48,
+          "actual": {
+            "width": 0,
+            "height": 0
+          },
+          "status": "fail",
+          "issues": [
+            "Width 0px is less than minimum 48px",
+            "Height 0px is less than minimum 48px"
+          ]
+        }
+      ]
+    },
+    "Mobile Portrait": {
+      "width": 480,
+      "minSize": 48,
+      "tests": [
+        {
+          "selector": "#audio-controls button",
+          "name": "Audio Control Buttons",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 24,
+            "height": 16
+          },
+          "status": "fail",
+          "issues": [
+            "Width 24px is less than minimum 48px",
+            "Height 16px is less than minimum 48px"
+          ]
+        },
+        {
+          "selector": ".volume-slider input[type=\"range\"]",
+          "name": "Volume Sliders",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 70,
+            "height": 44
+          },
+          "status": "fail",
+          "issues": [
+            "Height 44px is less than minimum 48px",
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": ".difficulty-btn",
+          "name": "Difficulty Buttons",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 140,
+            "height": 44
+          },
+          "status": "fail",
+          "issues": [
+            "Height 44px is less than minimum 48px",
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#start-button",
+          "name": "Start Button",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 80,
+            "height": 84
+          },
+          "status": "pass",
+          "issues": []
+        },
+        {
+          "selector": "#help-button",
+          "name": "Help Button",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 44,
+            "height": 44
+          },
+          "status": "fail",
+          "issues": [
+            "Width 44px is less than minimum 48px",
+            "Height 44px is less than minimum 48px",
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#pause-button",
+          "name": "Pause Button",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 44,
+            "height": 44
+          },
+          "status": "fail",
+          "issues": [
+            "Width 44px is less than minimum 48px",
+            "Height 44px is less than minimum 48px",
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#help-close",
+          "name": "Help Close Button",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 80,
+            "height": 30
+          },
+          "status": "fail",
+          "issues": [
+            "Height 30px is less than minimum 48px"
+          ]
+        },
+        {
+          "selector": "#pause-overlay button",
+          "name": "Pause Overlay Buttons",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 230,
+            "height": 36
+          },
+          "status": "fail",
+          "issues": [
+            "Height 36px is less than minimum 48px"
+          ]
+        },
+        {
+          "selector": "#resume-button",
+          "name": "Resume Button",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 0,
+            "height": 0
+          },
+          "status": "fail",
+          "issues": [
+            "Width 0px is less than minimum 48px",
+            "Height 0px is less than minimum 48px"
+          ]
+        },
+        {
+          "selector": "#restart-button",
+          "name": "Restart Button",
+          "viewport": "Mobile Portrait",
+          "expected": 48,
+          "actual": {
+            "width": 0,
+            "height": 0
+          },
+          "status": "fail",
+          "issues": [
+            "Width 0px is less than minimum 48px",
+            "Height 0px is less than minimum 48px"
+          ]
+        }
+      ]
+    },
+    "Tablet Portrait": {
+      "width": 768,
+      "minSize": 44,
+      "tests": [
+        {
+          "selector": "#audio-controls button",
+          "name": "Audio Control Buttons",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 24,
+            "height": 16
+          },
+          "status": "fail",
+          "issues": [
+            "Width 24px is less than minimum 44px",
+            "Height 16px is less than minimum 44px"
+          ]
+        },
+        {
+          "selector": ".volume-slider input[type=\"range\"]",
+          "name": "Volume Sliders",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 70,
+            "height": 44
+          },
+          "status": "pass",
+          "issues": [
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": ".difficulty-btn",
+          "name": "Difficulty Buttons",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 140,
+            "height": 44
+          },
+          "status": "pass",
+          "issues": [
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#start-button",
+          "name": "Start Button",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 80,
+            "height": 84
+          },
+          "status": "pass",
+          "issues": []
+        },
+        {
+          "selector": "#help-button",
+          "name": "Help Button",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 44,
+            "height": 44
+          },
+          "status": "pass",
+          "issues": [
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#pause-button",
+          "name": "Pause Button",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 44,
+            "height": 44
+          },
+          "status": "pass",
+          "issues": [
+            "Below Google's recommended 48x48px for mobile (but meets WCAG 44x44px)"
+          ]
+        },
+        {
+          "selector": "#help-close",
+          "name": "Help Close Button",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 80,
+            "height": 30
+          },
+          "status": "fail",
+          "issues": [
+            "Height 30px is less than minimum 44px"
+          ]
+        },
+        {
+          "selector": "#pause-overlay button",
+          "name": "Pause Overlay Buttons",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 230,
+            "height": 36
+          },
+          "status": "fail",
+          "issues": [
+            "Height 36px is less than minimum 44px"
+          ]
+        },
+        {
+          "selector": "#resume-button",
+          "name": "Resume Button",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 0,
+            "height": 0
+          },
+          "status": "fail",
+          "issues": [
+            "Width 0px is less than minimum 44px",
+            "Height 0px is less than minimum 44px"
+          ]
+        },
+        {
+          "selector": "#restart-button",
+          "name": "Restart Button",
+          "viewport": "Tablet Portrait",
+          "expected": 44,
+          "actual": {
+            "width": 0,
+            "height": 0
+          },
+          "status": "fail",
+          "issues": [
+            "Width 0px is less than minimum 44px",
+            "Height 0px is less than minimum 44px"
+          ]
+        }
+      ]
+    }
+  },
+  "summary": {
+    "totalTests": 30,
+    "passed": 7,
+    "failed": 23,
+    "warnings": 12
+  }
+}

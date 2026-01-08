@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Touch Target Visual Test - Bugdom</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .viewport-section {
+            margin-bottom: 50px;
+            border: 2px solid #4a9d2e;
+            padding: 20px;
+            border-radius: 10px;
+            background: #2a2a2a;
+        }
+
+        .viewport-header {
+            background: #4a9d2e;
+            color: white;
+            padding: 15px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .viewport-header h2 {
+            margin: 0;
+        }
+
+        .viewport-frame {
+            background: white;
+            overflow: auto;
+            margin: 20px auto;
+            border: 3px solid #666;
+            position: relative;
+        }
+
+        .viewport-frame::before {
+            content: 'Viewport: ' attr(data-width) 'px';
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+
+        .test-element {
+            margin: 15px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .test-element::after {
+            content: attr(data-size);
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            font-size: 10px;
+            color: #ffcc00;
+            white-space: nowrap;
+        }
+
+        .overlay-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background-image:
+                repeating-linear-gradient(0deg, rgba(255, 0, 0, 0.1) 0px, rgba(255, 0, 0, 0.1) 1px, transparent 1px, transparent 44px),
+                repeating-linear-gradient(90deg, rgba(255, 0, 0, 0.1) 0px, rgba(255, 0, 0, 0.1) 1px, transparent 1px, transparent 44px);
+            background-size: 44px 44px;
+        }
+
+        .overlay-grid-48 {
+            background-image:
+                repeating-linear-gradient(0deg, rgba(0, 255, 0, 0.1) 0px, rgba(0, 255, 0, 0.1) 1px, transparent 1px, transparent 48px),
+                repeating-linear-gradient(90deg, rgba(0, 255, 0, 0.1) 0px, rgba(0, 255, 0, 0.1) 1px, transparent 1px, transparent 48px);
+            background-size: 48px 48px;
+        }
+
+        .measurement-tool {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #4a9d2e;
+            z-index: 10000;
+            max-width: 300px;
+        }
+
+        .measurement-tool h3 {
+            margin-top: 0;
+            color: #4a9d2e;
+        }
+
+        .pass {
+            color: #22dd22;
+        }
+
+        .warning {
+            color: #ffaa00;
+        }
+
+        .fail {
+            color: #dd2222;
+        }
+
+        .element-list {
+            margin: 20px 0;
+        }
+
+        .element-item {
+            background: #333;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid;
+        }
+
+        .element-item.pass {
+            border-left-color: #22dd22;
+        }
+
+        .element-item.warning {
+            border-left-color: #ffaa00;
+        }
+
+        .element-item.fail {
+            border-left-color: #dd2222;
+        }
+
+        .element-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .element-size {
+            font-size: 12px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #4a9d2e;">Touch Target Visual Verification Test</h1>
+    <p style="text-align: center; color: #aaa;">
+        WCAG 2.5.5 Level AAA: 44x44px minimum | Google Material Design: 48x48px recommended
+        <br>
+        <span class="pass">■</span> Pass  <span class="warning">■</span> Warning  <span class="fail">■</span> Fail
+    </p>
+
+    <div class="measurement-tool">
+        <h3>📏 Measurement Tool</h3>
+        <p style="font-size: 12px; color: #aaa;">Hover over any interactive element to see its computed touch target size.</p>
+        <div id="current-measurement">
+            <strong>Current Element:</strong> None
+            <div id="measurement-details"></div>
+        </div>
+    </div>
+
+    <!-- iPhone SE (320px) -->
+    <div class="viewport-section">
+        <div class="viewport-header">
+            <h2>📱 iPhone SE (320px)</h2>
+            <span>Minimum: 48x48px</span>
+        </div>
+
+        <iframe id="frame-320" src="index.html" class="viewport-frame" style="width: 320px; height: 600px;" data-width="320"></iframe>
+
+        <div class="element-list" id="elements-320"></div>
+    </div>
+
+    <!-- Mobile Portrait (480px) -->
+    <div class="viewport-section">
+        <div class="viewport-header">
+            <h2>📱 Mobile Portrait (480px)</h2>
+            <span>Minimum: 48x48px</span>
+        </div>
+
+        <iframe id="frame-480" src="index.html" class="viewport-frame" style="width: 480px; height: 600px;" data-width="480"></iframe>
+
+        <div class="element-list" id="elements-480"></div>
+    </div>
+
+    <!-- Tablet Portrait (768px) -->
+    <div class="viewport-section">
+        <div class="viewport-header">
+            <h2>📱 Tablet Portrait (768px)</h2>
+            <span>Minimum: 44x44px</span>
+        </div>
+
+        <iframe id="frame-768" src="index.html" class="viewport-frame" style="width: 768px; height: 600px;" data-width="768"></iframe>
+
+        <div class="element-list" id="elements-768"></div>
+    </div>
+
+    <script>
+        const TOUCH_TARGETS = [
+            { selector: '#start-button', name: 'Start Button' },
+            { selector: '.difficulty-btn', name: 'Difficulty Buttons', multiple: true },
+            { selector: '#help-button', name: 'Help Button' },
+            { selector: '#pause-button', name: 'Pause Button' },
+            { selector: '#audio-controls button', name: 'Audio Control Buttons', multiple: true },
+            { selector: '.volume-slider input[type="range"]', name: 'Volume Sliders', multiple: true },
+            { selector: '#help-close', name: 'Help Close Button' },
+            { selector: '#resume-button', name: 'Resume Button' },
+            { selector: '#restart-button', name: 'Restart Button' }
+        ];
+
+        function measureElement(element) {
+            const rect = element.getBoundingClientRect();
+            const computed = window.getComputedStyle(element);
+
+            return {
+                width: Math.round(rect.width),
+                height: Math.round(rect.height),
+                minWidth: computed.minWidth,
+                minHeight: computed.minHeight
+            };
+        }
+
+        function classifyElement(width, height, minSize) {
+            if (width >= minSize && height >= minSize) {
+                return 'pass';
+            } else if (width >= 44 && height >= 44) {
+                return 'warning';
+            } else {
+                return 'fail';
+            }
+        }
+
+        function analyzeIframe(frameId, viewport, minSize) {
+            const iframe = document.getElementById(frameId);
+            const container = document.getElementById(`elements-${viewport}`);
+
+            iframe.addEventListener('load', () => {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                const results = [];
+
+                TOUCH_TARGETS.forEach(target => {
+                    const elements = doc.querySelectorAll(target.selector);
+
+                    if (elements.length === 0) {
+                        results.push({
+                            name: target.name,
+                            selector: target.selector,
+                            status: 'not-found',
+                            message: 'Element not found (may require user interaction)'
+                        });
+                    } else {
+                        elements.forEach((element, index) => {
+                            const measurements = measureElement(element);
+                            const status = classifyElement(measurements.width, measurements.height, minSize);
+
+                            results.push({
+                                name: target.multiple ? `${target.name} #${index + 1}` : target.name,
+                                selector: target.selector,
+                                measurements,
+                                status,
+                                minSize
+                            });
+                        });
+                    }
+                });
+
+                // Display results
+                container.innerHTML = '<h3>Touch Target Analysis:</h3>';
+                results.forEach(result => {
+                    const div = document.createElement('div');
+                    div.className = `element-item ${result.status}`;
+
+                    if (result.status === 'not-found') {
+                        div.innerHTML = `
+                            <div class="element-name">${result.name}</div>
+                            <div class="element-size">${result.message}</div>
+                        `;
+                    } else {
+                        const statusText = result.status === 'pass' ? '✅ Pass' :
+                                         result.status === 'warning' ? '⚠️ Warning (meets WCAG, below Google)' :
+                                         '❌ Fail';
+
+                        div.innerHTML = `
+                            <div class="element-name">${result.name}</div>
+                            <div class="element-size">
+                                Size: ${result.measurements.width}x${result.measurements.height}px
+                                (Required: ${result.minSize}x${result.minSize}px)
+                                <br>
+                                <strong class="${result.status}">${statusText}</strong>
+                            </div>
+                        `;
+                    }
+
+                    container.appendChild(div);
+                });
+
+                // Summary
+                const passed = results.filter(r => r.status === 'pass').length;
+                const warned = results.filter(r => r.status === 'warning').length;
+                const failed = results.filter(r => r.status === 'fail').length;
+
+                const summary = document.createElement('div');
+                summary.style.cssText = 'margin-top: 20px; padding: 15px; background: #333; border-radius: 5px;';
+                summary.innerHTML = `
+                    <strong>Summary:</strong>
+                    <span class="pass">✅ ${passed} passed</span> |
+                    <span class="warning">⚠️ ${warned} warnings</span> |
+                    <span class="fail">❌ ${failed} failed</span>
+                `;
+                container.appendChild(summary);
+            });
+        }
+
+        // Analyze all viewports
+        analyzeIframe('frame-320', '320', 48);
+        analyzeIframe('frame-480', '480', 48);
+        analyzeIframe('frame-768', '768', 44);
+    </script>
+</body>
+</html>
