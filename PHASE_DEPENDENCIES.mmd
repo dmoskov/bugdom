@@ -1,0 +1,105 @@
+graph TD
+    Start[Current State: 1 Level Demo] --> P1[Phase 1: Multi-Level Infrastructure]
+
+    P1 --> P1.1[1.1 Level System Architecture]
+    P1 --> P1.2[1.2 Terrain System Expansion]
+    P1 --> P1.3[1.3 First Three New Levels]
+
+    P1.1 --> P1.1.1[1.1.1 Level Manager]
+    P1.1 --> P1.1.2[1.1.2 Level Data Format]
+    P1.1.1 --> P1.1.3[1.1.3 Level Transitions]
+    P1.1.2 --> P1.1.3
+    P1.1.3 --> P1.1.4[1.1.4 Level Select UI]
+    P1.1.4 --> P1.1.5[1.1.5 Progression Persistence]
+
+    P1.2 --> P1.2.1[1.2.1 Data-Driven Terrain]
+    P1.2.1 --> P1.2.2[1.2.2 Heightmap Terrain]
+    P1.2.1 --> P1.2.3[1.2.3 Texture Variation]
+    P1.2.3 --> P1.2.4[1.2.4 Biome System]
+    P1.2.1 --> P1.2.5[1.2.5 Decorations]
+
+    P1.1.3 --> P1.3.1[1.3.1 Training Level]
+    P1.2.1 --> P1.3.1
+    P1.3.1 --> P1.3.2[1.3.2 Lawn Level]
+    P1.2.2 --> P1.3.2
+
+    P1 --> P2[Phase 2: Player Mechanics]
+    P1 --> P3[Phase 3: Enemy Expansion]
+
+    P2 --> P2.1[2.1 Ball Mode]
+    P2 --> P2.2[2.2 Advanced Movement]
+    P2 --> P2.3[2.3 Rideable Creatures]
+
+    P2.1 --> P2.1.1[Ball Physics]
+    P2.1 --> P2.1.2[Ball Visual]
+    P2.1.1 --> P2.1.3[Mode Switching]
+    P2.1.2 --> P2.1.3
+    P2.1.3 --> P2.1.4[Ball Controls]
+
+    P2.2 --> P2.2.1[Swimming]
+    P2.2 --> P2.2.2[Jumping]
+    P2.2.2 --> P2.2.3[Climbing]
+
+    P1.2.3 --> P2.2.1
+    P2.2.1 --> P1.3.3[1.3.3 Pond Level]
+
+    P2.3 --> P2.3.1[Mount System]
+    P2.3.1 --> P2.3.2[DragonFly Mount]
+    P2.3.1 --> P2.3.3[Grasshopper Mount]
+
+    P3 --> P3.1[3.1 Flying Enemies]
+    P3 --> P3.2[3.2 Ground Enemies]
+    P3 --> P3.3[3.3 Water Enemies]
+    P3 --> P3.4[3.4 Advanced AI]
+
+    P2 --> P5[Phase 5: Advanced Levels]
+    P3 --> P5
+
+    P5 --> P5.1[Night Level]
+    P5 --> P5.2[Beach Level]
+    P5 --> P5.3[Flight Level]
+    P5 --> P5.4[AntHill Level]
+    P5 --> P5.5[BeeHive Level]
+
+    P2.3.2 --> P5.3
+
+    P5 --> P4[Phase 4: Boss Battles]
+
+    P4 --> P4.1[Boss Framework]
+    P4.1 --> P4.2[King Ant Boss]
+    P4.1 --> P4.3[Queen Bee Boss]
+
+    P5.4 --> P4.2
+    P5.5 --> P4.3
+
+    P1 --> P6[Phase 6: Items & Power-ups]
+    P1 --> P7[Phase 7: Traps & Hazards]
+
+    P6 --> P6.1[Power-ups]
+    P6 --> P6.2[Collectibles]
+    P6 --> P6.3[Inventory]
+
+    P7 --> P7.1[Trap Types]
+    P7 --> P7.2[Hazards]
+
+    P4 --> P8[Phase 8: Polish]
+    P6 --> P8
+    P7 --> P8
+
+    P8 --> P8.1[Audio Enhancement]
+    P8 --> P8.2[Visual Polish]
+    P8 --> P8.3[UI/UX]
+    P8 --> P8.4[Story & Narrative]
+
+    P8 --> Complete[Complete: 10 Levels, 17+ Enemies, Full Features]
+
+    style Start fill:#ff9999
+    style Complete fill:#99ff99
+    style P1 fill:#ffcc99
+    style P2 fill:#ffcc99
+    style P3 fill:#ffcc99
+    style P4 fill:#ffff99
+    style P5 fill:#ffff99
+    style P6 fill:#ccffcc
+    style P7 fill:#ccffcc
+    style P8 fill:#ccffcc
