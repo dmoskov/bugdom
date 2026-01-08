@@ -353,7 +353,7 @@ let highScore = 0;
 let isNewHighScore = false;
 const clovers = [];
 let cloversCollected = 0;
-const TOTAL_CLOVERS = 13;
+const TOTAL_CLOVERS = 30;
 
 // ============================================
 // HIGH SCORE PERSISTENCE
@@ -455,7 +455,7 @@ let selectedDifficulty = 'medium'; // default
 
 // Difficulty state
 let currentLevel = 1;
-const MAX_LEVEL = 5;
+const MAX_LEVEL = 10;
 const CLOVERS_PER_LEVEL = 3; // Every 3 clovers = level up
 
 // Base enemy scaling per level (modified by difficulty preset)
@@ -464,7 +464,12 @@ const BASE_DIFFICULTY_SETTINGS = {
     2: { enemySpeed: 0.05, maxEnemies: 4, spawnRate: 15000 },
     3: { enemySpeed: 0.06, maxEnemies: 5, spawnRate: 12000 },
     4: { enemySpeed: 0.07, maxEnemies: 6, spawnRate: 10000 },
-    5: { enemySpeed: 0.08, maxEnemies: 8, spawnRate: 8000 }
+    5: { enemySpeed: 0.08, maxEnemies: 8, spawnRate: 8000 },
+    6: { enemySpeed: 0.09, maxEnemies: 9, spawnRate: 7000 },
+    7: { enemySpeed: 0.10, maxEnemies: 10, spawnRate: 6000 },
+    8: { enemySpeed: 0.11, maxEnemies: 12, spawnRate: 5000 },
+    9: { enemySpeed: 0.12, maxEnemies: 14, spawnRate: 4500 },
+    10: { enemySpeed: 0.13, maxEnemies: 16, spawnRate: 4000 }
 };
 
 // Get difficulty settings for current level and preset
@@ -586,7 +591,24 @@ const cloverPositions = [
     { x: -18, z: -18 },
     { x: 25, z: -5 },
     { x: -10, z: 20 },
-    { x: 0, z: -15 }
+    { x: 0, z: -15 },
+    { x: 18, z: -15 },
+    { x: -25, z: -8 },
+    { x: 10, z: 22 },
+    { x: -12, z: -22 },
+    { x: 28, z: 5 },
+    { x: -28, z: 15 },
+    { x: 3, z: -25 },
+    { x: -20, z: 5 },
+    { x: 22, z: -12 },
+    { x: -8, z: -15 },
+    { x: 14, z: 8 },
+    { x: -16, z: 18 },
+    { x: 6, z: -18 },
+    { x: -24, z: -3 },
+    { x: 26, z: 12 },
+    { x: -6, z: 25 },
+    { x: 16, z: -22 }
 ];
 
 // Add clovers to scene
