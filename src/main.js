@@ -11,6 +11,12 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb); // Sky blue
 scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
 
+// Initialize new game systems (must come after scene creation, before any usage)
+const collectiblesManager = new CollectiblesManager(scene);
+const enemyManager = new EnemyManager(scene);
+const particleEffects = new ParticleEffectsManager(scene);
+const rippleManager = new RippleManager(scene);
+
 // Camera setup
 const camera = new THREE.PerspectiveCamera(
     75,
@@ -1104,6 +1110,7 @@ function showVictoryScreen(timeString) {
         color: white;
         font-family: Arial, sans-serif;
         animation: fadeIn 0.5s ease-in;
+        cursor: pointer;
     `;
 
     // Add CSS animation
@@ -1120,6 +1127,10 @@ function showVictoryScreen(timeString) {
         @keyframes sparkle {
             0%, 100% { text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold; }
             50% { text-shadow: 0 0 20px gold, 0 0 40px gold, 0 0 60px gold; }
+        }
+        @keyframes tapHintPulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
         }
         #victory-screen h1 {
             animation: bounce 1s ease-in-out infinite, sparkle 1.5s ease-in-out infinite;
@@ -1153,10 +1164,17 @@ function showVictoryScreen(timeString) {
             margin: 10px;
             transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            min-height: 48px;
         }
         #victory-screen button:hover {
             transform: scale(1.05);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        #victory-screen .tap-hint {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 16px;
+            margin-top: 20px;
+            animation: tapHintPulse 2s ease-in-out infinite;
         }
     `;
     document.head.appendChild(style);
@@ -1193,7 +1211,13 @@ function showVictoryScreen(timeString) {
         <div>
             <button onclick="location.reload()">Play Again</button>
         </div>
+        <p class="tap-hint">(Tap anywhere to restart)</p>
     `;
+
+    // Make entire overlay clickable
+    overlay.addEventListener('click', () => {
+        location.reload();
+    });
 
     document.body.appendChild(overlay);
 }
@@ -1245,12 +1269,6 @@ const ENEMY_COLLISION_RADIUS = 1.5;
 const bees = [];
 const BEE_SPEED = 0.06;
 const BEE_COLLISION_RADIUS = 1.2;
-
-// Initialize new game systems
-const collectiblesManager = new CollectiblesManager(scene);
-const enemyManager = new EnemyManager(scene);
-const particleEffects = new ParticleEffectsManager(scene);
-const rippleManager = new RippleManager(scene);
 
 // Power-up state
 let speedBoostActive = false;
@@ -1799,6 +1817,10 @@ function gameOver() {
             font-weight: bold;
             color: #ff6666;
         }
+        @keyframes tapHintPulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
         #game-over button {
             padding: 18px 50px;
             font-size: 22px;
@@ -1810,11 +1832,18 @@ function gameOver() {
             margin-top: 20px;
             transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            min-height: 48px;
         }
         #game-over button:hover {
             transform: scale(1.05);
             box-shadow: 0 6px 20px rgba(200, 0, 0, 0.4);
             background: linear-gradient(135deg, #dd4444, #bb3333);
+        }
+        #game-over .tap-hint {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 16px;
+            margin-top: 20px;
+            animation: tapHintPulse 2s ease-in-out infinite;
         }
     `;
     document.head.appendChild(style);
@@ -1836,6 +1865,7 @@ function gameOver() {
         z-index: 1000;
         color: white;
         font-family: Arial, sans-serif;
+        cursor: pointer;
     `;
     const enemyMsg = bees.length > 0 ? 'The bugs got you!' : 'The ants got you!';
     const highScoreMessage = isNewHighScore
@@ -1869,7 +1899,14 @@ function gameOver() {
             </div>
         </div>
         <button onclick="location.reload()">Try Again</button>
+        <p class="tap-hint">(Tap anywhere to try again)</p>
     `;
+
+    // Make entire overlay clickable
+    overlay.addEventListener('click', () => {
+        location.reload();
+    });
+
     document.body.appendChild(overlay);
 }
 
