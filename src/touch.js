@@ -1,5 +1,5 @@
 // Touch controls for mobile devices
-// This module sets up virtual joystick and touch controls
+// This module sets up full-screen touch controls with visual joystick feedback
 
 let touchControls = {
     forward: false,
@@ -21,45 +21,49 @@ export function initTouchControls() {
         return;
     }
 
-    let touchId = null;
-    let joystickCenter = { x: 0, y: 0 };
-    const maxDistance = 40; // Maximum distance the stick can move from center
+    let activeTouchId = null;
+    let touchStartPos = { x: 0, y: 0 };
+    const maxDistance = 40; // Maximum distance the visual stick can move from center
 
-    function updateJoystickPosition(touch) {
-        const rect = joystickOuter.getBoundingClientRect();
-        joystickCenter.x = rect.left + rect.width / 2;
-        joystickCenter.y = rect.top + rect.height / 2;
+    // Calculate controls based on touch position relative to screen center
+    function updateControlsFromTouch(touch) {
+        const screenCenterX = window.innerWidth / 2;
+        const screenCenterY = window.innerHeight / 2;
 
-        let dx = touch.clientX - joystickCenter.x;
-        let dy = touch.clientY - joystickCenter.y;
+        // Calculate offset from screen center
+        let dx = touch.clientX - screenCenterX;
+        let dy = touch.clientY - screenCenterY;
 
         const distance = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
 
-        // Clamp to max distance
-        const clampedDistance = Math.min(distance, maxDistance);
-
-        const x = Math.cos(angle) * clampedDistance;
-        const y = Math.sin(angle) * clampedDistance;
-
-        joystickInner.style.transform = `translate(${x}px, ${y}px)`;
-
-        // Calculate controls
+        // Calculate strength based on distance from center (normalized to screen size)
+        const maxScreenDistance = Math.min(window.innerWidth, window.innerHeight) / 2;
         touchControls.joystickAngle = angle;
-        touchControls.joystickStrength = clampedDistance / maxDistance;
+        touchControls.joystickStrength = Math.min(distance / maxScreenDistance, 1.0);
 
-        // Convert to directional controls
-        const normalizedDx = dx / distance;
-        const normalizedDy = dy / distance;
-        const threshold = 0.3;
+        // Update visual joystick to show touch direction
+        const visualDx = touch.clientX - touchStartPos.x;
+        const visualDy = touch.clientY - touchStartPos.y;
+        const visualDistance = Math.sqrt(visualDx * visualDx + visualDy * visualDy);
+        const visualAngle = Math.atan2(visualDy, visualDx);
+        const clampedDistance = Math.min(visualDistance, maxDistance);
+        const visualX = Math.cos(visualAngle) * clampedDistance;
+        const visualY = Math.sin(visualAngle) * clampedDistance;
+        joystickInner.style.transform = `translate(${visualX}px, ${visualY}px)`;
 
-        touchControls.forward = normalizedDy < -threshold && touchControls.joystickStrength > 0.2;
-        touchControls.backward = normalizedDy > threshold && touchControls.joystickStrength > 0.2;
-        touchControls.left = normalizedDx < -threshold && touchControls.joystickStrength > 0.2;
-        touchControls.right = normalizedDx > threshold && touchControls.joystickStrength > 0.2;
+        // Convert to directional controls using screen center as reference
+        const normalizedDx = dx / (distance || 1);
+        const normalizedDy = dy / (distance || 1);
+        const threshold = 0.2; // Lower threshold for easier control
+
+        touchControls.forward = normalizedDy < -threshold && touchControls.joystickStrength > 0.1;
+        touchControls.backward = normalizedDy > threshold && touchControls.joystickStrength > 0.1;
+        touchControls.left = normalizedDx < -threshold && touchControls.joystickStrength > 0.1;
+        touchControls.right = normalizedDx > threshold && touchControls.joystickStrength > 0.1;
     }
 
-    function resetJoystick() {
+    function resetControls() {
         joystickInner.style.transform = 'translate(0, 0)';
         touchControls.forward = false;
         touchControls.backward = false;
@@ -67,48 +71,62 @@ export function initTouchControls() {
         touchControls.right = false;
         touchControls.joystickActive = false;
         touchControls.joystickStrength = 0;
-        touchId = null;
+        activeTouchId = null;
     }
 
-    // Touch event handlers
-    joystickOuter.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        if (touchId === null) {
-            touchId = e.touches[0].identifier;
-            touchControls.joystickActive = true;
-            updateJoystickPosition(e.touches[0]);
+    // Full-screen touch event handlers on document
+    // This makes the entire screen a touch target
+    document.addEventListener('touchstart', (e) => {
+        // Ignore touches on UI elements
+        if (e.target.closest('#start-overlay, #pause-overlay, #help-overlay, button')) {
+            return;
         }
-    });
 
-    joystickOuter.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (activeTouchId === null && e.touches.length > 0) {
+            activeTouchId = e.touches[0].identifier;
+            touchControls.joystickActive = true;
+
+            // Store where the touch started for visual feedback
+            touchStartPos.x = e.touches[0].clientX;
+            touchStartPos.y = e.touches[0].clientY;
+
+            updateControlsFromTouch(e.touches[0]);
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+        // Ignore touches on UI elements
+        if (e.target.closest('#start-overlay, #pause-overlay, #help-overlay, button')) {
+            return;
+        }
+
         e.preventDefault();
         for (let i = 0; i < e.touches.length; i++) {
-            if (e.touches[i].identifier === touchId) {
-                updateJoystickPosition(e.touches[i]);
+            if (e.touches[i].identifier === activeTouchId) {
+                updateControlsFromTouch(e.touches[i]);
                 break;
             }
         }
-    });
+    }, { passive: false });
 
-    joystickOuter.addEventListener('touchend', (e) => {
-        e.preventDefault();
+    document.addEventListener('touchend', (e) => {
         for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === touchId) {
-                resetJoystick();
+            if (e.changedTouches[i].identifier === activeTouchId) {
+                resetControls();
                 break;
             }
         }
-    });
+    }, { passive: false });
 
-    joystickOuter.addEventListener('touchcancel', (e) => {
-        e.preventDefault();
+    document.addEventListener('touchcancel', (e) => {
         for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === touchId) {
-                resetJoystick();
+            if (e.changedTouches[i].identifier === activeTouchId) {
+                resetControls();
                 break;
             }
         }
-    });
+    }, { passive: false });
 
     // Show controls on mobile - improved detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
