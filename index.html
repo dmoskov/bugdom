@@ -437,6 +437,45 @@
             transition: transform 0.1s ease;
         }
 
+        /* Touch target size compliance - 44x44px minimum (WCAG 2.5.5) */
+        #audio-controls button {
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .volume-slider input[type="range"] {
+            min-height: 44px;
+        }
+
+        .difficulty-btn {
+            min-height: 44px;
+        }
+
+        #start-button {
+            min-height: 44px;
+        }
+
+        #help-button {
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        #pause-button {
+            min-height: 44px;
+        }
+
+        #help-close {
+            min-height: 44px;
+        }
+
+        #pause-overlay button {
+            min-height: 44px;
+        }
+
+        #resume-button, #restart-button {
+            min-height: 44px;
+        }
+
         /* Mobile responsive styles */
         @media (max-width: 768px) {
             #info {
@@ -517,10 +556,12 @@
                 font-size: 18px;
             }
 
+            /* Touch target improvements - 48x48px minimum (Google guidelines) */
             .difficulty-btn {
                 font-size: 14px;
-                padding: 10px 20px;
-                min-width: 100px;
+                padding: 14px 20px;
+                min-width: 120px;
+                min-height: 48px;
             }
 
             .difficulty-description {
@@ -529,8 +570,34 @@
             }
 
             #start-button {
-                padding: 15px 35px;
+                padding: 18px 40px;
                 font-size: 18px;
+                min-height: 48px;
+            }
+
+            /* Help button - ensure 48x48px minimum */
+            #help-button {
+                width: 48px;
+                height: 48px;
+                font-size: 22px;
+            }
+
+            /* Pause button - ensure 48x48px minimum */
+            #pause-button {
+                min-height: 48px;
+                padding: 12px 20px;
+            }
+
+            /* Pause overlay buttons */
+            #pause-overlay button {
+                min-height: 48px;
+                padding: 18px 40px;
+            }
+
+            /* Help close button */
+            #help-close {
+                min-height: 48px;
+                padding: 18px 40px;
             }
         }
 
@@ -834,19 +901,16 @@
         }
 
         @media (max-width: 768px) {
+            /* This media query is for pause button positioning -
+               touch target size is already handled in the main 768px breakpoint above */
             #pause-button {
                 font-size: 14px;
-                padding: 6px 15px;
                 top: 5px;
             }
             #pause-overlay h1 {
                 font-size: 42px;
             }
-            #pause-overlay button {
-                padding: 15px 30px;
-                font-size: 18px;
-                min-width: 120px;
-            }
+            /* Pause overlay button touch targets handled in main 768px breakpoint */
         }
     </style>
 </head>
