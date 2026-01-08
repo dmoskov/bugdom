@@ -710,6 +710,7 @@ function checkCollectibles(currentTime) {
                 break;
             case 'buddybug':
                 extraLives++;
+                updateLivesDisplay();
                 audioManager.playPowerUp();
                 showPowerUpMessage('Extra Life! Lives: ' + extraLives);
                 break;
@@ -749,6 +750,19 @@ function handleMushroomPowerUp(variant, currentTime) {
                 }
             });
             break;
+    }
+}
+
+// Update lives display
+function updateLivesDisplay() {
+    const livesDisplay = document.getElementById('lives-display');
+    if (livesDisplay) {
+        if (extraLives > 0) {
+            livesDisplay.textContent = `Lives: ${extraLives}`;
+            livesDisplay.style.display = 'block';
+        } else {
+            livesDisplay.style.display = 'none';
+        }
     }
 }
 
@@ -1606,6 +1620,16 @@ function checkBeeSpawn(currentTime) {
     }
 }
 
+// Check for new enemy collisions (spiders and slugs)
+function checkNewEnemyCollisions(currentTime) {
+    const spiderCollision = enemyManager.checkSpiderCollisions(playerBug.position, 2.0);
+    const slugCollision = enemyManager.checkSlugCollisions(playerBug.position, 2.0);
+
+    if ((spiderCollision || slugCollision) && currentTime - lastDamageTime > DAMAGE_COOLDOWN) {
+        takeDamage(currentTime);
+    }
+}
+
 // Check collision between player and enemies (including bees)
 function checkEnemyCollision(currentTime) {
     // Check if player is still in invincibility period
@@ -1657,6 +1681,7 @@ function takeDamage(currentTime) {
         // Check if we have extra lives
         if (extraLives > 0) {
             extraLives--;
+            updateLivesDisplay();
             playerHealth = MAX_HEALTH;
             updateHealthDisplay();
             showPowerUpMessage('Extra Life Used! Lives: ' + extraLives);
@@ -2147,18 +2172,34 @@ function animate(currentTime) {
     // Check for clover collection (only if not won yet)
     if (!gameWon) {
         checkCloverCollision();
+        // Check for new collectibles (power-ups, coins, buddy bugs)
+        checkCollectibles(currentTime);
     }
+
+    // Update power-up states (check expiration)
+    updatePowerUps(currentTime);
 
     // Update enemy ants (only if game not won)
     if (!gameWon && !gameOverTriggered) {
         updateEnemies(deltaTime, currentTime);
         updateBees(deltaTime, currentTime);
         checkBeeSpawn(currentTime);
+        // Update new enemy types (spiders and slugs)
+        enemyManager.update(deltaTime, playerBug.position);
         // Check for enemy collision
         checkEnemyCollision(currentTime);
+        // Check for new enemy collisions (spiders and slugs)
+        checkNewEnemyCollisions(currentTime);
         // Update combo timer
         updateComboTimer(currentTime);
     }
+
+    // Update collectibles animations
+    collectiblesManager.update(deltaTime);
+
+    // Update particle effects
+    particleEffects.update(deltaTime);
+    rippleManager.update(deltaTime);
 
     // Update confetti particles
     updateConfetti();
