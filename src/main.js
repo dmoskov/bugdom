@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { audioManager } from './audio.js';
 import { DayNightCycle } from './daynight.js';
 import { getTouchControls } from './touch.js';
+import { CollectiblesManager } from './collectibles.js';
+import { Spider, Slug, EnemyManager } from './enemies.js';
+import { ParticleEffectsManager, RippleManager } from './particles.js';
 
 // Scene setup
 const scene = new THREE.Scene();
@@ -589,6 +592,30 @@ cloverPositions.forEach((pos, index) => {
     clovers.push(clover);
 });
 
+// Spawn power-up mushrooms (health, speed, invincibility)
+collectiblesManager.spawnMushroom(new THREE.Vector3(30, 1, 30), 'health');
+collectiblesManager.spawnMushroom(new THREE.Vector3(-30, 1, 30), 'speed');
+collectiblesManager.spawnMushroom(new THREE.Vector3(-30, 1, -30), 'invincibility');
+
+// Spawn BuddyBug for extra life
+collectiblesManager.spawnBuddyBug(new THREE.Vector3(30, 1, -30));
+
+// Spawn coins for bonus points
+const coinPositions = [
+    { x: 8, z: 8 }, { x: -8, z: 8 }, { x: 8, z: -8 }, { x: -8, z: -8 },
+    { x: 15, z: 0 }, { x: -15, z: 0 }, { x: 0, z: 15 }, { x: 0, z: -15 }
+];
+coinPositions.forEach(pos => {
+    collectiblesManager.spawnCoin(new THREE.Vector3(pos.x, 1, pos.z));
+});
+
+// Spawn additional enemy types (spiders and slugs)
+enemyManager.spawnSpider(new THREE.Vector3(20, 10, 20)); // Spider starts high
+enemyManager.spawnSpider(new THREE.Vector3(-20, 10, -20));
+enemyManager.spawnSlug(new THREE.Vector3(-25, 0, 10));
+enemyManager.spawnSlug(new THREE.Vector3(25, 0, -10));
+enemyManager.spawnSlug(new THREE.Vector3(10, 0, 25));
+
 // Collision detection radius
 const COLLECTION_RADIUS = 2.5;
 
@@ -669,6 +696,103 @@ function checkLevelUp() {
 
         // Apply new difficulty settings
         applyDifficultySettings();
+    }
+}
+
+// Check for collectible pickup
+function checkCollectibles(currentTime) {
+    const collected = collectiblesManager.checkCollisions(playerBug.position, COLLECTION_RADIUS);
+
+    if (collected) {
+        switch (collected.type) {
+            case 'mushroom':
+                handleMushroomPowerUp(collected.variant, currentTime);
+                break;
+            case 'buddybug':
+                extraLives++;
+                audioManager.playPowerUp();
+                showPowerUpMessage('Extra Life! Lives: ' + extraLives);
+                break;
+            case 'coin':
+                score += 50;
+                updateScoreDisplay();
+                audioManager.playCloverCollect(false);
+                break;
+        }
+    }
+}
+
+// Handle mushroom power-up effects
+function handleMushroomPowerUp(variant, currentTime) {
+    audioManager.playPowerUp();
+
+    switch (variant) {
+        case 'health':
+            playerHealth = Math.min(MAX_HEALTH, playerHealth + 30);
+            updateHealthDisplay();
+            showPowerUpMessage('Health +30!');
+            break;
+        case 'speed':
+            speedBoostActive = true;
+            speedBoostEndTime = currentTime + SPEED_BOOST_DURATION;
+            showPowerUpMessage('Speed Boost! (8s)');
+            break;
+        case 'invincibility':
+            invincibilityActive = true;
+            invincibilityEndTime = currentTime + INVINCIBILITY_DURATION;
+            showPowerUpMessage('Invincibility! (10s)');
+            // Visual feedback for invincibility
+            playerBug.traverse(child => {
+                if (child.isMesh) {
+                    child.material.emissive = new THREE.Color(0x00ffff);
+                    child.material.emissiveIntensity = 0.5;
+                }
+            });
+            break;
+    }
+}
+
+// Show power-up message
+function showPowerUpMessage(message) {
+    const popup = document.createElement('div');
+    popup.style.position = 'fixed';
+    popup.style.top = '35%';
+    popup.style.left = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
+    popup.style.color = '#ffcc00';
+    popup.style.fontSize = '32px';
+    popup.style.fontWeight = 'bold';
+    popup.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.8)';
+    popup.style.zIndex = '500';
+    popup.style.pointerEvents = 'none';
+    popup.textContent = message;
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+        popup.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        popup.style.opacity = '0';
+        popup.style.transform = 'translate(-50%, -70%)';
+        setTimeout(() => popup.remove(), 500);
+    }, 1500);
+}
+
+// Update power-up states
+function updatePowerUps(currentTime) {
+    // Check if speed boost expired
+    if (speedBoostActive && currentTime > speedBoostEndTime) {
+        speedBoostActive = false;
+    }
+
+    // Check if invincibility expired
+    if (invincibilityActive && currentTime > invincibilityEndTime) {
+        invincibilityActive = false;
+        // Remove visual feedback
+        playerBug.traverse(child => {
+            if (child.isMesh) {
+                child.material.emissive = new THREE.Color(0x000000);
+                child.material.emissiveIntensity = 0;
+            }
+        });
     }
 }
 
@@ -1108,6 +1232,22 @@ const bees = [];
 const BEE_SPEED = 0.06;
 const BEE_COLLISION_RADIUS = 1.2;
 
+// Initialize new game systems
+const collectiblesManager = new CollectiblesManager(scene);
+const enemyManager = new EnemyManager(scene);
+const particleEffects = new ParticleEffectsManager(scene);
+const rippleManager = new RippleManager(scene);
+
+// Power-up state
+let speedBoostActive = false;
+let speedBoostEndTime = 0;
+let invincibilityActive = false;
+let invincibilityEndTime = 0;
+let extraLives = 0;
+const SPEED_BOOST_MULTIPLIER = 1.5;
+const SPEED_BOOST_DURATION = 8000; // 8 seconds
+const INVINCIBILITY_DURATION = 10000; // 10 seconds
+
 // Create enemy ant (similar to player bug but red)
 function createEnemyAnt() {
     const antGroup = new THREE.Group();
@@ -1495,6 +1635,11 @@ function checkEnemyCollision(currentTime) {
 
 // Handle player taking damage
 function takeDamage(currentTime) {
+    // Don't take damage if invincible
+    if (invincibilityActive) {
+        return;
+    }
+
     lastDamageTime = currentTime;
     playerHealth = Math.max(0, playerHealth - DAMAGE_PER_HIT);
 
@@ -1509,7 +1654,16 @@ function takeDamage(currentTime) {
 
     // Check for game over
     if (playerHealth <= 0) {
-        gameOver();
+        // Check if we have extra lives
+        if (extraLives > 0) {
+            extraLives--;
+            playerHealth = MAX_HEALTH;
+            updateHealthDisplay();
+            showPowerUpMessage('Extra Life Used! Lives: ' + extraLives);
+            audioManager.playPowerUp();
+        } else {
+            gameOver();
+        }
     }
 }
 
@@ -1768,13 +1922,22 @@ function updatePlayerBug() {
         // Rotate direction by bug's rotation
         direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), playerState.rotation);
 
-        // Apply movement
-        playerBug.position.x += direction.x * playerState.moveSpeed;
-        playerBug.position.z += direction.z * playerState.moveSpeed;
+        // Apply movement with speed boost if active
+        const effectiveSpeed = speedBoostActive ?
+            playerState.moveSpeed * SPEED_BOOST_MULTIPLIER :
+            playerState.moveSpeed;
+
+        playerBug.position.x += direction.x * effectiveSpeed;
+        playerBug.position.z += direction.z * effectiveSpeed;
 
         // Keep bug within boundaries
         playerBug.position.x = Math.max(-45, Math.min(45, playerBug.position.x));
         playerBug.position.z = Math.max(-45, Math.min(45, playerBug.position.z));
+
+        // Create ripple effect when moving
+        if (Math.random() < 0.1) {
+            rippleManager.createRipple(playerBug.position.clone());
+        }
     }
 }
 
