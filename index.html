@@ -437,49 +437,52 @@
             transition: transform 0.1s ease;
         }
 
-        /* Touch target size compliance - 44x44px minimum (WCAG 2.5.5) */
-        #audio-controls button {
-            min-width: 44px;
-            min-height: 44px;
-        }
+        /* Touch target size compliance - 44x44px minimum (WCAG 2.5.5)
+           Applied only on touch-capable devices to preserve desktop experience */
+        @media (pointer: coarse) {
+            #audio-controls button {
+                min-width: 44px;
+                min-height: 44px;
+            }
 
-        .volume-slider input[type="range"] {
-            min-width: 70px;
-            min-height: 44px;
-        }
+            .volume-slider input[type="range"] {
+                min-width: 70px;
+                min-height: 44px;
+            }
 
-        .difficulty-btn {
-            min-width: 140px;
-            min-height: 44px;
-        }
+            .difficulty-btn {
+                min-width: 140px;
+                min-height: 44px;
+            }
 
-        #start-button {
-            min-height: 44px;
-        }
+            #start-button {
+                min-height: 44px;
+            }
 
-        #help-button {
-            min-width: 44px;
-            min-height: 44px;
-        }
+            #help-button {
+                min-width: 44px;
+                min-height: 44px;
+            }
 
-        #pause-button {
-            min-width: 44px;
-            min-height: 44px;
-        }
+            #pause-button {
+                min-width: 44px;
+                min-height: 44px;
+            }
 
-        #help-close {
-            min-width: 44px;
-            min-height: 44px;
-        }
+            #help-close {
+                min-width: 44px;
+                min-height: 44px;
+            }
 
-        #pause-overlay button {
-            min-width: 44px;
-            min-height: 44px;
-        }
+            #pause-overlay button {
+                min-width: 44px;
+                min-height: 44px;
+            }
 
-        #resume-button, #restart-button {
-            min-width: 44px;
-            min-height: 44px;
+            #resume-button, #restart-button {
+                min-width: 44px;
+                min-height: 44px;
+            }
         }
 
         /* Mobile responsive styles */
