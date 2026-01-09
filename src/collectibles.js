@@ -561,6 +561,44 @@ export class CollectiblesManager {
         return buddy;
     }
 
+    checkCollisions(playerPosition, collectionRadius) {
+        for (let i = this.collectibles.length - 1; i >= 0; i--) {
+            const collectible = this.collectibles[i];
+            const distance = playerPosition.distanceTo(collectible.position);
+
+            if (distance < collectionRadius) {
+                // Get collectible info before removing
+                const collectedInfo = {
+                    type: collectible.constructor.name.toLowerCase(),
+                    variant: collectible.type || collectible.color || collectible.value || null,
+                    position: collectible.position.clone()
+                };
+
+                // Map constructor names to expected types
+                if (collectible instanceof MushroomPowerUp) {
+                    collectedInfo.type = 'mushroom';
+                    collectedInfo.variant = collectible.type;
+                } else if (collectible instanceof BuddyBug) {
+                    collectedInfo.type = 'buddybug';
+                } else if (collectible instanceof Coin) {
+                    collectedInfo.type = 'coin';
+                    collectedInfo.variant = collectible.value;
+                } else if (collectible instanceof Key) {
+                    collectedInfo.type = 'key';
+                    collectedInfo.variant = collectible.color;
+                } else if (collectible instanceof Berry) {
+                    collectedInfo.type = 'berry';
+                    collectedInfo.variant = collectible.type;
+                }
+
+                collectible.remove();
+                this.collectibles.splice(i, 1);
+                return collectedInfo;
+            }
+        }
+        return null;
+    }
+
     update(player, deltaTime) {
         for (let i = this.collectibles.length - 1; i >= 0; i--) {
             const collectible = this.collectibles[i];
