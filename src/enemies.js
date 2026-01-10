@@ -654,6 +654,28 @@ export class EnemyManager {
         player.userData.webSphere = webSphere;
     }
 
+    checkSpiderCollisions(playerPosition, collisionRadius) {
+        for (const spider of this.spiders) {
+            if (!spider.mesh) continue;
+            const distance = playerPosition.distanceTo(spider.mesh.position);
+            if (distance < collisionRadius) {
+                return { enemy: spider, type: 'spider', damage: spider.damage || 15 };
+            }
+        }
+        return null;
+    }
+
+    checkSlugCollisions(playerPosition, collisionRadius) {
+        for (const slug of this.slugs) {
+            if (!slug.mesh) continue;
+            const distance = playerPosition.distanceTo(slug.mesh.position);
+            if (distance < collisionRadius) {
+                return { enemy: slug, type: 'slug', damage: slug.damage || 5 };
+            }
+        }
+        return null;
+    }
+
     removeAll() {
         this.enemies.forEach(enemy => {
             this.scene.remove(enemy.mesh);
