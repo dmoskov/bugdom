@@ -2244,7 +2244,7 @@ function animate(currentTime) {
         updateBees(deltaTime, currentTime);
         checkBeeSpawn(currentTime);
         // Update new enemy types (spiders and slugs)
-        enemyManager.update(deltaTime, playerBug.position);
+        enemyManager.update(playerBug, deltaTime);
         // Check for enemy collision
         checkEnemyCollision(currentTime);
         // Check for new enemy collisions (spiders and slugs)
