@@ -529,6 +529,7 @@ export class CollectiblesManager {
     constructor(scene) {
         this.scene = scene;
         this.collectibles = [];
+        this.initialized = true;
     }
 
     spawnMushroom(position, type = 'health') {
@@ -601,17 +602,10 @@ export class CollectiblesManager {
         return null;
     }
 
-    update(player, deltaTime) {
+    update(deltaTime) {
         for (let i = this.collectibles.length - 1; i >= 0; i--) {
             const collectible = this.collectibles[i];
-
             collectible.update(deltaTime);
-
-            // Check collision with player
-            if (collectible.checkCollision(player)) {
-                collectible.remove();
-                this.collectibles.splice(i, 1);
-            }
         }
     }
 
