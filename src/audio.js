@@ -418,6 +418,42 @@ class AudioManager {
         finalOsc.stop(finalStart + 1.6);
     }
 
+    // Power-up collection - uplifting tone
+    playPowerUp() {
+        if (!this.isInitialized || this.isMuted) return;
+
+        const now = this.context.currentTime;
+
+        // Ascending major arpeggio with sparkle
+        const notes = [
+            { freq: 523.25, time: 0, dur: 0.12 },      // C5
+            { freq: 659.25, time: 0.08, dur: 0.12 },   // E5
+            { freq: 783.99, time: 0.16, dur: 0.2 }     // G5
+        ];
+
+        notes.forEach(note => {
+            const osc = this.context.createOscillator();
+            const gain = this.context.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.value = note.freq;
+
+            osc.connect(gain);
+            gain.connect(this.sfxGain);
+
+            const startTime = now + note.time;
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.3, startTime + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.01, startTime + note.dur);
+
+            osc.start(startTime);
+            osc.stop(startTime + note.dur + 0.1);
+        });
+
+        // Add sparkle effect
+        this.playSparkle(now + 0.15);
+    }
+
     // Victory - triumphant ascending fanfare
     playVictory() {
         if (!this.isInitialized || this.isMuted) return;
