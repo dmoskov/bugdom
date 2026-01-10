@@ -464,12 +464,12 @@ const BASE_DIFFICULTY_SETTINGS = {
     2: { enemySpeed: 0.05, maxEnemies: 4, spawnRate: 15000 },
     3: { enemySpeed: 0.06, maxEnemies: 5, spawnRate: 12000 },
     4: { enemySpeed: 0.07, maxEnemies: 6, spawnRate: 10000 },
-    5: { enemySpeed: 0.08, maxEnemies: 8, spawnRate: 8000 },
+    5: { enemySpeed: 0.08, maxEnemies: 7, spawnRate: 9000 },  // Smoothed: was 8 enemies, 8000ms
     6: { enemySpeed: 0.09, maxEnemies: 9, spawnRate: 7000 },
     7: { enemySpeed: 0.10, maxEnemies: 10, spawnRate: 6000 },
-    8: { enemySpeed: 0.11, maxEnemies: 12, spawnRate: 5000 },
-    9: { enemySpeed: 0.12, maxEnemies: 14, spawnRate: 4500 },
-    10: { enemySpeed: 0.13, maxEnemies: 16, spawnRate: 4000 }
+    8: { enemySpeed: 0.11, maxEnemies: 11, spawnRate: 5000 }, // Reduced: was 12 enemies
+    9: { enemySpeed: 0.12, maxEnemies: 13, spawnRate: 4500 }, // Reduced: was 14 enemies
+    10: { enemySpeed: 0.13, maxEnemies: 15, spawnRate: 4500 } // Reduced: was 16 enemies, 4000ms
 };
 
 // Get difficulty settings for current level and preset
@@ -847,6 +847,85 @@ function applyDifficultySettings() {
     for (let i = 0; i < enemiesToSpawn; i++) {
         setTimeout(() => spawnEnemy(), i * 500); // Stagger spawns
     }
+
+    // Apply level-specific environmental effects
+    applyLevelEnvironment();
+}
+
+// Apply level-specific environmental effects and mechanics
+function applyLevelEnvironment() {
+    // Level 3: Misty atmosphere with increased spider activity
+    if (currentLevel === 3) {
+        scene.fog = new THREE.Fog(0x87ceeb, 30, 120); // Denser fog
+        // Adjust ambient light to create misty feel
+        if (ambientLight) {
+            ambientLight.intensity = 0.5; // Slightly dimmer
+        }
+        if (directionalLight) {
+            directionalLight.intensity = 0.7; // Softer shadows
+        }
+        // Spawn additional spiders for level 3
+        const spidersToAdd = 2;
+        for (let i = 0; i < spidersToAdd; i++) {
+            setTimeout(() => {
+                const x = (Math.random() - 0.5) * 80;
+                const z = (Math.random() - 0.5) * 80;
+                enemyManager.spawnSpider(x, 8, z);
+            }, i * 1000);
+        }
+    }
+    // Level 4: Darker ambiance with slug trails and more variety
+    else if (currentLevel === 4) {
+        scene.fog = new THREE.Fog(0x7ba8c4, 40, 140); // Slightly darker fog
+        // Darker lighting for level 4
+        if (ambientLight) {
+            ambientLight.intensity = 0.45; // Even dimmer
+        }
+        if (directionalLight) {
+            directionalLight.intensity = 0.65;
+            directionalLight.color.setHex(0xf0e6d2); // Slightly warmer tint
+        }
+        // Spawn slugs for level 4
+        const slugsToAdd = 3;
+        for (let i = 0; i < slugsToAdd; i++) {
+            setTimeout(() => {
+                const x = (Math.random() - 0.5) * 80;
+                const z = (Math.random() - 0.5) * 80;
+                enemyManager.spawnSlug(x, 0.5, z);
+            }, i * 1200);
+        }
+        // Add extra power-ups for compensation
+        const extraPowerUps = 2;
+        for (let i = 0; i < extraPowerUps; i++) {
+            setTimeout(() => {
+                const x = (Math.random() - 0.5) * 70;
+                const z = (Math.random() - 0.5) * 70;
+                const powerUpType = Math.random() < 0.5 ? 'speed' : 'invincibility';
+                collectiblesManager.spawnPowerUp(x, z, powerUpType);
+            }, i * 1500 + 500);
+        }
+    }
+    // Level 5+: Return to standard fog but darker atmosphere
+    else if (currentLevel >= 5) {
+        scene.fog = new THREE.Fog(0x6a95b0, 35, 150);
+        if (ambientLight) {
+            ambientLight.intensity = 0.5;
+        }
+        if (directionalLight) {
+            directionalLight.intensity = 0.7;
+            directionalLight.color.setHex(0xffffff); // Reset to white
+        }
+    }
+    // Lower levels: Restore default lighting
+    else {
+        if (ambientLight) {
+            ambientLight.intensity = 0.6; // Default
+        }
+        if (directionalLight) {
+            directionalLight.intensity = 0.8; // Default
+            directionalLight.color.setHex(0xffffff);
+        }
+    }
 }
 
 // Show combo popup
@@ -876,9 +955,22 @@ function showComboPopup(multiplier, points) {
 function showLevelUpPopup() {
     const popup = document.createElement('div');
     popup.className = 'levelup-popup';
+
+    // Level-specific messages
+    let levelMessage = 'Enemies are getting stronger!';
+    if (currentLevel === 3) {
+        levelMessage = 'Spiders emerge from the mist!';
+    } else if (currentLevel === 4) {
+        levelMessage = 'Slugs join the battle!';
+    } else if (currentLevel === 5) {
+        levelMessage = 'The swarm intensifies!';
+    } else if (currentLevel >= 7) {
+        levelMessage = 'Maximum difficulty reached!';
+    }
+
     popup.innerHTML = `
         <div class="levelup-text">LEVEL ${currentLevel}!</div>
-        <div class="levelup-warning">Enemies are getting stronger!</div>
+        <div class="levelup-warning">${levelMessage}</div>
     `;
     popup.style.cssText = `
         position: fixed;
@@ -1651,10 +1743,22 @@ function updateBees(deltaTime, currentTime) {
 
 // Spawn bees at higher difficulty levels
 function checkBeeSpawn(currentTime) {
-    // Bees only appear at level 3+
-    if (currentLevel >= 3 && bees.length < currentLevel - 1) {
-        // Chance to spawn bee every 20 seconds
-        if (Math.random() < 0.001) {
+    // Bees only appear at level 3+, capped at 8 max bees
+    const maxBees = Math.min(8, currentLevel - 1);
+
+    // Level-specific spawn rates
+    let spawnChance = 0.001; // Base spawn chance
+    if (currentLevel === 3) {
+        spawnChance = 0.0015; // 50% more frequent at level 3
+    } else if (currentLevel === 4) {
+        spawnChance = 0.002; // 100% more frequent at level 4
+    } else if (currentLevel >= 5) {
+        spawnChance = 0.0025; // Even more frequent at higher levels
+    }
+
+    if (currentLevel >= 3 && bees.length < maxBees) {
+        // Chance to spawn bee based on level
+        if (Math.random() < spawnChance) {
             spawnBee();
         }
     }
