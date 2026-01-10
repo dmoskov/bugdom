@@ -2205,8 +2205,9 @@ let lastTime = 0;
 function animate(currentTime) {
     requestAnimationFrame(animate);
 
-    const deltaTime = currentTime - lastTime;
+    const deltaTimeMs = currentTime - lastTime;
     lastTime = currentTime;
+    const deltaTime = deltaTimeMs / 1000; // Convert to seconds
 
     // If game is paused, don't update game logic, only render
     if (gameState === GameState.PAUSED) {
