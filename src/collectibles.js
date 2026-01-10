@@ -564,14 +564,16 @@ export class CollectiblesManager {
     checkCollisions(playerPosition, collectionRadius) {
         for (let i = this.collectibles.length - 1; i >= 0; i--) {
             const collectible = this.collectibles[i];
-            const distance = playerPosition.distanceTo(collectible.position);
+            if (!collectible.mesh) continue;
+
+            const distance = playerPosition.distanceTo(collectible.mesh.position);
 
             if (distance < collectionRadius) {
                 // Get collectible info before removing
                 const collectedInfo = {
                     type: collectible.constructor.name.toLowerCase(),
                     variant: collectible.type || collectible.color || collectible.value || null,
-                    position: collectible.position.clone()
+                    position: collectible.mesh.position.clone()
                 };
 
                 // Map constructor names to expected types
