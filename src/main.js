@@ -901,7 +901,7 @@ function applyLevelEnvironment() {
                 const x = (Math.random() - 0.5) * 70;
                 const z = (Math.random() - 0.5) * 70;
                 const powerUpType = Math.random() < 0.5 ? 'speed' : 'invincibility';
-                collectiblesManager.spawnPowerUp(x, z, powerUpType);
+                collectiblesManager.spawnMushroom(new THREE.Vector3(x, 1, z), powerUpType);
             }, i * 1500 + 500);
         }
     }
