@@ -1,5 +1,7 @@
 // Touch controls for mobile devices
-// This module sets up full-screen touch controls with visual joystick feedback
+// This module sets up lower-half touch controls with visual joystick feedback
+// Following mobile game best practices: restrict touch to lower half to avoid
+// accidental touches on UI and maximize comfortable thumb reach zones
 
 let touchControls = {
     forward: false,
@@ -10,6 +12,9 @@ let touchControls = {
     joystickAngle: 0,
     joystickStrength: 0
 };
+
+// Touch zone configuration - restrict to lower portion of screen
+const TOUCH_ZONE_TOP_PERCENT = 0.4; // Touch zone starts at 40% down the screen (60% of screen is active)
 
 // Initialize touch controls
 export function initTouchControls() {
@@ -24,6 +29,12 @@ export function initTouchControls() {
     let activeTouchId = null;
     let touchStartPos = { x: 0, y: 0 };
     const maxDistance = 40; // Maximum distance the visual stick can move from center
+
+    // Helper function to check if touch is in valid zone (lower 60% of screen)
+    function isInTouchZone(y) {
+        const touchZoneTop = window.innerHeight * TOUCH_ZONE_TOP_PERCENT;
+        return y >= touchZoneTop;
+    }
 
     // Calculate controls based on touch position relative to screen center
     function updateControlsFromTouch(touch) {
@@ -74,11 +85,17 @@ export function initTouchControls() {
         activeTouchId = null;
     }
 
-    // Full-screen touch event handlers on document
-    // This makes the entire screen a touch target
+    // Lower-half touch event handlers on document
+    // Following mobile game best practices: restrict touch to lower 60% of screen
+    // This prevents accidental touches on UI elements and keeps controls in thumb reach zone
     document.addEventListener('touchstart', (e) => {
         // Ignore touches on UI elements
         if (e.target.closest('#start-overlay, #pause-overlay, #help-overlay, button')) {
+            return;
+        }
+
+        // Only accept touches in the lower portion of the screen
+        if (!isInTouchZone(e.touches[0].clientY)) {
             return;
         }
 
@@ -104,6 +121,8 @@ export function initTouchControls() {
         e.preventDefault();
         for (let i = 0; i < e.touches.length; i++) {
             if (e.touches[i].identifier === activeTouchId) {
+                // Allow touchmove to continue even if it drifts outside the zone
+                // This prevents jarring control loss during gameplay
                 updateControlsFromTouch(e.touches[i]);
                 break;
             }
