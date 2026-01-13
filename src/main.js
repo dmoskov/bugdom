@@ -17,10 +17,18 @@ const enemyManager = new EnemyManager(scene);
 const particleEffects = new ParticleEffectsManager(scene);
 const rippleManager = new RippleManager(scene);
 
-// Camera setup
+// Camera setup - Get aspect ratio from container or window
+const getCameraAspect = () => {
+    const container = document.getElementById('game-container');
+    if (container) {
+        return container.clientWidth / container.clientHeight;
+    }
+    return window.innerWidth / window.innerHeight;
+};
+
 const camera = new THREE.PerspectiveCamera(
     75,
-    window.innerWidth / window.innerHeight,
+    getCameraAspect(),
     0.1,
     1000
 );
@@ -143,10 +151,17 @@ camera.lookAt(0, 1, 0);
 
 // Renderer setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const gameContainer = document.getElementById('game-container');
+const canvasWidth = gameContainer ? gameContainer.clientWidth : window.innerWidth;
+const canvasHeight = gameContainer ? gameContainer.clientHeight : window.innerHeight;
+renderer.setSize(canvasWidth, canvasHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-document.body.appendChild(renderer.domElement);
+if (gameContainer) {
+    gameContainer.appendChild(renderer.domElement);
+} else {
+    document.body.appendChild(renderer.domElement);
+}
 
 // Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -1033,7 +1048,7 @@ function updateScoreDisplay() {
 function updateCloverCountDisplay() {
     const cloverCountElement = document.getElementById('clover-count');
     if (cloverCountElement) {
-        cloverCountElement.textContent = `Clovers: ${cloversCollected}/${TOTAL_CLOVERS}`;
+        cloverCountElement.textContent = `🍀 ${cloversCollected}/${TOTAL_CLOVERS}`;
     }
 }
 
@@ -2381,9 +2396,12 @@ function animate(currentTime) {
 
 // Handle window resize
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const container = document.getElementById('game-container');
+    const width = container ? container.clientWidth : window.innerWidth;
+    const height = container ? container.clientHeight : window.innerHeight;
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
 });
 
 // ============================================
