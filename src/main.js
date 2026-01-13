@@ -8,7 +8,7 @@ import { ParticleEffectsManager, RippleManager } from './particles.js';
 
 // Scene setup
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // Sky blue
+scene.background = new THREE.Color(0x87ceeb); // Sky blue - can change to warmer tones like 0xffa050 for sunset
 scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
 
 // Initialize new game systems (must come after scene creation, before any usage)
@@ -163,11 +163,11 @@ if (gameContainer) {
     document.body.appendChild(renderer.domElement);
 }
 
-// Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+// Lighting - Brighter, more saturated like original Bugdom
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0); // Increased brightness
 directionalLight.position.set(50, 50, 50);
 directionalLight.castShadow = true;
 directionalLight.shadow.camera.left = -50;
@@ -184,7 +184,7 @@ let dayNightCycle = null;
 // Ground plane with grass texture
 const groundGeometry = new THREE.PlaneGeometry(100, 100, 32, 32);
 const groundMaterial = new THREE.MeshStandardMaterial({
-    color: 0x4a9d2e,
+    color: 0x5db83c, // Brighter, more saturated green like original Bugdom
     roughness: 0.8,
     metalness: 0.2
 });
@@ -207,7 +207,7 @@ scene.add(ground);
 for (let i = 0; i < 20; i++) {
     const patchGeometry = new THREE.CircleGeometry(Math.random() * 2 + 1, 16);
     const patchMaterial = new THREE.MeshStandardMaterial({
-        color: 0x3d8026,
+        color: 0x4a9d2e, // Slightly brighter grass patches
         roughness: 0.9
     });
     const patch = new THREE.Mesh(patchGeometry, patchMaterial);
@@ -1878,21 +1878,28 @@ function flashPlayer() {
 
 // Update health display in UI
 function updateHealthDisplay() {
-    const healthBar = document.getElementById('health-bar');
+    const healthSegments = document.querySelectorAll('.health-segment');
     const healthText = document.getElementById('health-text');
 
-    if (healthBar) {
-        // Update bar width
-        const healthPercent = (playerHealth / MAX_HEALTH) * 100;
-        healthBar.style.width = `${healthPercent}%`;
+    if (healthSegments.length > 0) {
+        // Each segment represents 10 HP (100 HP / 10 segments = 10 HP per segment)
+        const segmentsToShow = Math.ceil(playerHealth / 10);
 
-        // Update visual state classes
-        healthBar.classList.remove('warning', 'critical');
-        if (playerHealth <= 25) {
-            healthBar.classList.add('critical');
-        } else if (playerHealth <= 50) {
-            healthBar.classList.add('warning');
-        }
+        healthSegments.forEach((segment, index) => {
+            segment.classList.remove('empty', 'warning', 'critical');
+
+            if (index < segmentsToShow) {
+                // Segment is filled
+                if (playerHealth <= 25) {
+                    segment.classList.add('critical');
+                } else if (playerHealth <= 50) {
+                    segment.classList.add('warning');
+                }
+            } else {
+                // Segment is empty
+                segment.classList.add('empty');
+            }
+        });
     }
 
     if (healthText) {
