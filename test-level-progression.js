@@ -12,12 +12,12 @@ const BASE_DIFFICULTY_SETTINGS = {
     2: { enemySpeed: 0.05, maxEnemies: 4, spawnRate: 15000 },
     3: { enemySpeed: 0.06, maxEnemies: 5, spawnRate: 12000 },
     4: { enemySpeed: 0.07, maxEnemies: 6, spawnRate: 10000 },
-    5: { enemySpeed: 0.08, maxEnemies: 8, spawnRate: 8000 },
+    5: { enemySpeed: 0.08, maxEnemies: 7, spawnRate: 9000 },  // Smoothed: was 8 enemies, 8000ms
     6: { enemySpeed: 0.09, maxEnemies: 9, spawnRate: 7000 },
     7: { enemySpeed: 0.10, maxEnemies: 10, spawnRate: 6000 },
-    8: { enemySpeed: 0.11, maxEnemies: 12, spawnRate: 5000 },
-    9: { enemySpeed: 0.12, maxEnemies: 14, spawnRate: 4500 },
-    10: { enemySpeed: 0.13, maxEnemies: 16, spawnRate: 4000 }
+    8: { enemySpeed: 0.11, maxEnemies: 11, spawnRate: 5000 }, // Reduced: was 12 enemies
+    9: { enemySpeed: 0.12, maxEnemies: 13, spawnRate: 4500 }, // Reduced: was 14 enemies
+    10: { enemySpeed: 0.13, maxEnemies: 15, spawnRate: 4500 } // Reduced: was 16 enemies, 4000ms
 };
 
 // Test level progression logic
