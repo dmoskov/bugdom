@@ -199,17 +199,17 @@ function handleMushroomPowerUp(variant, currentTime) {
  */
 function onEnemyHit(currentTime) {
     // Check invincibility
-    if (gameState.getPowerUpStates().invincibility) {
+    if (gameState.isInvincibilityActive()) {
         return;
     }
 
     // Take damage
-    const damageSettings = gameState.getDifficultySettings(gameState.getCurrentLevel());
-    const damage = 20 * damageSettings.damageMultiplier;
-    gameState.takeDamage(damage);
+    const difficultyPreset = gameState.getDifficultyPreset(gameState.getSelectedDifficulty());
+    const damage = 20 * difficultyPreset.damageMultiplier;
+    gameState.damagePlayer(damage);
 
     // Update UI
-    uiManager.updateHealthDisplay(gameState.health);
+    uiManager.updateHealthDisplay();
 
     // Flash player
     player.flashPlayer(currentTime);
@@ -218,37 +218,21 @@ function onEnemyHit(currentTime) {
     audioManager.playHit();
 
     // Check game over
-    if (gameState.health <= 0 && gameState.lives > 0) {
+    if (gameState.getPlayerHealth() <= 0 && gameState.getExtraLives() > 0) {
         // Lost a life, respawn
-        gameState.loseLife();
-        gameState.setHealth(100);
-        uiManager.updateLivesDisplay(gameState.lives);
-        uiManager.updateHealthDisplay(gameState.health);
+        gameState.useExtraLife();
+        gameState.setPlayerHealth(gameState.getMaxHealth());
+        uiManager.updateLivesDisplay();
+        uiManager.updateHealthDisplay();
 
         // Reset player position
-        player.setPosition(new THREE.Vector3(0, 0, 0));
-    } else if (gameState.health <= 0 && gameState.lives <= 0) {
+        player.setPosition(0, 0, 0);
+    } else if (gameState.getPlayerHealth() <= 0 && gameState.getExtraLives() <= 0) {
         // Game over
         gameOver();
     }
 }
 
-/**
- * Apply level environment changes
- */
-function applyLevelEnvironment(levelSettings) {
-    // Update scene background color
-    scene.background.setHex(levelSettings.skyColor);
-    scene.fog.color.setHex(levelSettings.skyColor);
-
-    // Update ambient light
-    ambientLight.color.setHex(levelSettings.ambientColor);
-    ambientLight.intensity = levelSettings.ambientIntensity;
-
-    // Update directional light
-    directionalLight.color.setHex(levelSettings.lightColor);
-    directionalLight.intensity = levelSettings.lightIntensity;
-}
 
 /**
  * Handle victory
@@ -257,34 +241,42 @@ function victory() {
     gameState.setGameWon(true);
 
     // Calculate time
-    const totalTime = performance.now() - gameState.gameStartTime - gameState.pausedTime;
+    const totalTime = performance.now() - gameState.getGameStartTime() - gameState.getPausedTime();
     const seconds = Math.floor(totalTime / 1000);
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     const timeString = `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 
     // Check and update high score
-    const highScoreResult = gameState.checkAndUpdateHighScore();
-    if (highScoreResult.isNewHighScore) {
-        uiManager.showVictoryScreen(timeString, true);
-    } else {
-        uiManager.showVictoryScreen(timeString, false);
-    }
+    gameState.checkAndUpdateHighScore();
+    const isNewHighScore = gameState.getIsNewHighScore();
+
+    // Show victory screen with stats
+    uiManager.showVictoryScreen(timeString, {
+        score: gameState.getScore(),
+        highScore: gameState.getHighScore(),
+        isNewHighScore: isNewHighScore,
+        level: gameState.getCurrentLevel()
+    });
 
     // Play victory sound
     audioManager.playVictory();
 
     // Create confetti
-    levelManager.createConfetti();
+    levelManager.createConfetti(player.getPosition());
 }
 
 /**
  * Handle game over
  */
 function gameOver() {
-    gameState.setState(gameState.GameState.GAME_OVER);
+    gameState.setGameState(gameState.GameState.GAME_OVER);
     audioManager.playGameOver();
-    uiManager.showGameOverScreen(gameState.score);
+    uiManager.showGameOverScreen(`0:00`, {
+        score: gameState.getScore(),
+        highScore: gameState.getHighScore(),
+        level: gameState.getCurrentLevel()
+    });
 }
 
 // ============================================
@@ -301,7 +293,7 @@ function animate(currentTime) {
     const deltaTime = deltaTimeMs / 1000; // Convert to seconds
 
     // If game is paused, only render
-    if (gameState.getState() === gameState.GameState.PAUSED) {
+    if (gameState.getGameState() === gameState.GameState.PAUSED) {
         renderer.render(scene, camera);
         return;
     }
@@ -310,8 +302,8 @@ function animate(currentTime) {
 
     // Update player
     const movementInput = inputManager.getMovementInput();
-    const powerUpStates = gameState.getPowerUpStates();
-    player.updateMovement(movementInput, powerUpStates.speedBoost);
+    const isSpeedBoostActive = gameState.isSpeedBoostActive();
+    player.updateMovement(movementInput, isSpeedBoostActive);
     player.animateLegs(deltaTime);
     player.updateFlash(currentTime);
 
@@ -322,7 +314,7 @@ function animate(currentTime) {
     levelManager.animateClovers(clovers, animationTime);
 
     // Collision detection (if playing and not won)
-    if (!gameState.isGameWon() && gameState.getState() !== gameState.GameState.GAME_OVER) {
+    if (!gameState.getGameWon() && gameState.getGameState() !== gameState.GameState.GAME_OVER) {
         // Check clover collisions
         collisionManager.checkCloverCollisions(
             player.getPosition(),
@@ -365,11 +357,11 @@ function animate(currentTime) {
     }
 
     // Update power-ups
-    gameState.updatePowerUps(currentTime);
+    gameState.checkPowerUpExpirations(currentTime);
 
     // Update combo timer
-    gameState.updateComboTimer(currentTime);
-    uiManager.updateComboDisplay(gameState.comboCount, gameState.comboMultiplier);
+    gameState.checkComboExpiration(currentTime);
+    uiManager.updateComboDisplay();
 
     // Update enemies
     const diffSettings = gameState.getDifficultySettings(gameState.getCurrentLevel());
@@ -417,10 +409,10 @@ function startGame() {
 
     // Apply difficulty settings
     const difficulty = gameState.getSelectedDifficulty();
-    const diffSettings = gameState.DIFFICULTY_PRESETS[difficulty];
-    player.applyDifficultyModifier(diffSettings.playerSpeedMultiplier);
-    gameState.setMaxHealth(100 * diffSettings.playerHealthMultiplier);
-    gameState.setHealth(100 * diffSettings.playerHealthMultiplier);
+    const diffSettings = gameState.getDifficultyPreset(difficulty);
+    player.applyDifficultyModifiers(diffSettings);
+    gameState.setMaxHealth(gameState.getBaseMaxHealth() * diffSettings.playerHealthMultiplier);
+    gameState.setPlayerHealth(gameState.getMaxHealth());
 
     // Initialize audio
     initAudio();
@@ -433,10 +425,10 @@ function startGame() {
     levelManager.initEnemies(enemyCount);
 
     // Update UI
-    uiManager.updateCloverCountDisplay(gameState.cloversCollected, gameState.TOTAL_CLOVERS);
-    uiManager.updateLevelDisplay(gameState.getCurrentLevel(), difficulty);
-    uiManager.updateLivesDisplay(gameState.lives);
-    uiManager.updateHealthDisplay(gameState.health);
+    uiManager.updateCloverCountDisplay();
+    uiManager.updateLevelDisplay();
+    uiManager.updateLivesDisplay();
+    uiManager.updateHealthDisplay();
 
     // Show welcome message
     setTimeout(() => uiManager.showWelcomeMessage(), 1000);
@@ -445,8 +437,11 @@ function startGame() {
 /**
  * Pause game
  */
+let lastPauseTime = 0;
+
 function pauseGame() {
-    gameState.pauseGame(performance.now());
+    gameState.setGameState(gameState.GameState.PAUSED);
+    lastPauseTime = performance.now();
     audioManager.playPause();
     audioManager.pause();
     uiManager.showPauseOverlay();
@@ -456,7 +451,9 @@ function pauseGame() {
  * Resume game
  */
 function resumeGame() {
-    gameState.resumeGame(performance.now());
+    gameState.setGameState(gameState.GameState.PLAYING);
+    const pauseDuration = performance.now() - lastPauseTime;
+    gameState.addPausedTime(pauseDuration);
     audioManager.resume();
     audioManager.playResume();
     uiManager.hidePauseOverlay();
@@ -523,9 +520,8 @@ window.addEventListener('resize', () => {
 // ============================================
 // INITIALIZE GAME
 // ============================================
-// Load high score
-gameState.loadHighScore();
-uiManager.updateHighScoreDisplay(gameState.highScore);
+// Load high score (already done in GameStateManager constructor)
+// High score is displayed via updateScoreDisplay
 
 // Start animation loop
 animate(0);
