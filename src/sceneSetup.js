@@ -66,13 +66,21 @@ export function initializeScene(gameContainer) {
  * Setup window resize handler
  * @param {THREE.WebGLRenderer} renderer - The Three.js renderer
  * @param {CameraController} cameraController - The camera controller
+ * @returns {Function} Cleanup function to remove the resize listener
  */
 export function setupWindowResize(renderer, cameraController) {
-    window.addEventListener('resize', () => {
+    const handleResize = () => {
         cameraController.handleResize();
         const container = document.getElementById('game-container');
         const width = container ? container.clientWidth : window.innerWidth;
         const height = container ? container.clientHeight : window.innerHeight;
         renderer.setSize(width, height);
-    });
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    // Return cleanup function
+    return () => {
+        window.removeEventListener('resize', handleResize);
+    };
 }

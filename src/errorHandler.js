@@ -7,13 +7,15 @@ class ErrorHandler {
   constructor() {
     this.errorLog = [];
     this.maxLogSize = 100;
+    this.errorHandler = null;
+    this.rejectionHandler = null;
     this.initGlobalHandlers();
   }
 
   // Initialize global error handlers
   initGlobalHandlers() {
     // Catch unhandled errors
-    window.addEventListener('error', (event) => {
+    this.errorHandler = (event) => {
       this.logError({
         type: 'Uncaught Error',
         message: event.message,
@@ -29,10 +31,10 @@ class ErrorHandler {
 
       // Prevent default browser error handling for cleaner UX
       event.preventDefault();
-    });
+    };
 
     // Catch unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
+    this.rejectionHandler = (event) => {
       this.logError({
         type: 'Unhandled Promise Rejection',
         message: event.reason?.message || String(event.reason),
@@ -44,7 +46,10 @@ class ErrorHandler {
 
       // Prevent default browser error handling
       event.preventDefault();
-    });
+    };
+
+    window.addEventListener('error', this.errorHandler);
+    window.addEventListener('unhandledrejection', this.rejectionHandler);
   }
 
   // Log error to internal array
@@ -137,6 +142,18 @@ class ErrorHandler {
   // Clear error log
   clearErrorLog() {
     this.errorLog = [];
+  }
+
+  // Cleanup event listeners
+  cleanup() {
+    if (this.errorHandler) {
+      window.removeEventListener('error', this.errorHandler);
+      this.errorHandler = null;
+    }
+    if (this.rejectionHandler) {
+      window.removeEventListener('unhandledrejection', this.rejectionHandler);
+      this.rejectionHandler = null;
+    }
   }
 }
 

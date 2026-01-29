@@ -13,6 +13,9 @@ let touchControls = {
     joystickStrength: 0
 };
 
+// Store event listeners for cleanup
+let eventListeners = [];
+
 // Touch zone configuration - restrict to lower portion of screen
 const TOUCH_ZONE_TOP_PERCENT = 0.4; // Touch zone starts at 40% down the screen (60% of screen is active)
 
@@ -88,7 +91,7 @@ export function initTouchControls() {
     // Lower-half touch event handlers on document
     // Following mobile game best practices: restrict touch to lower 60% of screen
     // This prevents accidental touches on UI elements and keeps controls in thumb reach zone
-    document.addEventListener('touchstart', (e) => {
+    const handleTouchStart = (e) => {
         // Ignore touches on UI elements
         if (e.target.closest('#start-overlay, #pause-overlay, #help-overlay, button')) {
             return;
@@ -110,9 +113,9 @@ export function initTouchControls() {
 
             updateControlsFromTouch(e.touches[0]);
         }
-    }, { passive: false });
+    };
 
-    document.addEventListener('touchmove', (e) => {
+    const handleTouchMove = (e) => {
         // Ignore touches on UI elements
         if (e.target.closest('#start-overlay, #pause-overlay, #help-overlay, button')) {
             return;
@@ -127,25 +130,38 @@ export function initTouchControls() {
                 break;
             }
         }
-    }, { passive: false });
+    };
 
-    document.addEventListener('touchend', (e) => {
+    const handleTouchEnd = (e) => {
         for (let i = 0; i < e.changedTouches.length; i++) {
             if (e.changedTouches[i].identifier === activeTouchId) {
                 resetControls();
                 break;
             }
         }
-    }, { passive: false });
+    };
 
-    document.addEventListener('touchcancel', (e) => {
+    const handleTouchCancel = (e) => {
         for (let i = 0; i < e.changedTouches.length; i++) {
             if (e.changedTouches[i].identifier === activeTouchId) {
                 resetControls();
                 break;
             }
         }
-    }, { passive: false });
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
+    document.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+
+    // Store listeners for cleanup
+    eventListeners.push(
+        { element: document, event: 'touchstart', handler: handleTouchStart, options: { passive: false } },
+        { element: document, event: 'touchmove', handler: handleTouchMove, options: { passive: false } },
+        { element: document, event: 'touchend', handler: handleTouchEnd, options: { passive: false } },
+        { element: document, event: 'touchcancel', handler: handleTouchCancel, options: { passive: false } }
+    );
 
     // Show controls on mobile - improved detection
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
@@ -166,43 +182,78 @@ export function getTouchControls() {
 function preventDefaultTouchBehaviors() {
     // Prevent double-tap zoom
     let lastTouchEnd = 0;
-    document.addEventListener('touchend', (e) => {
+    const handleDoubleTapPrevention = (e) => {
         const now = Date.now();
         if (now - lastTouchEnd <= 300) {
             e.preventDefault();
         }
         lastTouchEnd = now;
-    }, { passive: false });
+    };
 
-    // Prevent pinch zoom
-    document.addEventListener('gesturestart', (e) => {
+    const handleGestureStart = (e) => {
         e.preventDefault();
-    });
+    };
 
-    document.addEventListener('gesturechange', (e) => {
+    const handleGestureChange = (e) => {
         e.preventDefault();
-    });
+    };
 
-    document.addEventListener('gestureend', (e) => {
+    const handleGestureEnd = (e) => {
         e.preventDefault();
-    });
+    };
 
-    // Prevent page scrolling when touching the game canvas
-    document.addEventListener('touchmove', (e) => {
+    const handleScrollPrevention = (e) => {
         // Allow scrolling in help overlay
         if (e.target.closest('#help-overlay, #help-content')) {
             return;
         }
         e.preventDefault();
-    }, { passive: false });
+    };
+
+    document.addEventListener('touchend', handleDoubleTapPrevention, { passive: false });
+    document.addEventListener('gesturestart', handleGestureStart);
+    document.addEventListener('gesturechange', handleGestureChange);
+    document.addEventListener('gestureend', handleGestureEnd);
+    document.addEventListener('touchmove', handleScrollPrevention, { passive: false });
+
+    // Store listeners for cleanup
+    eventListeners.push(
+        { element: document, event: 'touchend', handler: handleDoubleTapPrevention, options: { passive: false } },
+        { element: document, event: 'gesturestart', handler: handleGestureStart, options: undefined },
+        { element: document, event: 'gesturechange', handler: handleGestureChange, options: undefined },
+        { element: document, event: 'gestureend', handler: handleGestureEnd, options: undefined },
+        { element: document, event: 'touchmove', handler: handleScrollPrevention, options: { passive: false } }
+    );
+}
+
+// Cleanup function to remove all event listeners
+export function cleanupTouchControls() {
+    eventListeners.forEach(({ element, event, handler, options }) => {
+        element.removeEventListener(event, handler, options);
+    });
+    eventListeners = [];
+
+    // Reset touch controls state
+    touchControls.forward = false;
+    touchControls.backward = false;
+    touchControls.left = false;
+    touchControls.right = false;
+    touchControls.joystickActive = false;
+    touchControls.joystickStrength = 0;
 }
 
 // Initialize on load
+const handleDOMContentLoaded = () => {
+    initTouchControls();
+    preventDefaultTouchBehaviors();
+};
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        initTouchControls();
-        preventDefaultTouchBehaviors();
-    });
+    document.addEventListener('DOMContentLoaded', handleDOMContentLoaded);
+    // Store for cleanup
+    eventListeners.push(
+        { element: document, event: 'DOMContentLoaded', handler: handleDOMContentLoaded, options: undefined }
+    );
 } else {
     initTouchControls();
     preventDefaultTouchBehaviors();
