@@ -14,28 +14,37 @@ import { InputManager } from './input.js';
 import { CollisionManager } from './collision.js';
 import { UIManager } from './ui.js';
 import { LevelManager } from './levels.js';
+import { errorHandler } from './errorHandler.js';
 
 // ============================================
 // SCENE SETUP
 // ============================================
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb); // Sky blue
-scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+let scene, renderer, gameContainer;
 
-// ============================================
-// RENDERER SETUP
-// ============================================
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-const gameContainer = document.getElementById('game-container');
-const canvasWidth = gameContainer ? gameContainer.clientWidth : window.innerWidth;
-const canvasHeight = gameContainer ? gameContainer.clientHeight : window.innerHeight;
-renderer.setSize(canvasWidth, canvasHeight);
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-if (gameContainer) {
-    gameContainer.appendChild(renderer.domElement);
-} else {
-    document.body.appendChild(renderer.domElement);
+try {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb); // Sky blue
+    scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+
+    // ============================================
+    // RENDERER SETUP
+    // ============================================
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    gameContainer = document.getElementById('game-container');
+    const canvasWidth = gameContainer ? gameContainer.clientWidth : window.innerWidth;
+    const canvasHeight = gameContainer ? gameContainer.clientHeight : window.innerHeight;
+    renderer.setSize(canvasWidth, canvasHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if (gameContainer) {
+        gameContainer.appendChild(renderer.domElement);
+    } else {
+        document.body.appendChild(renderer.domElement);
+    }
+} catch (error) {
+    errorHandler.handleError(error, 'WebGL Initialization');
+    errorHandler.showUserError('Failed to initialize 3D graphics. Your browser may not support WebGL.');
+    throw new Error('WebGL initialization failed: ' + error.message);
 }
 
 // ============================================
@@ -288,15 +297,16 @@ let animationTime = 0;
 function animate(currentTime) {
     requestAnimationFrame(animate);
 
-    const deltaTimeMs = currentTime - lastTime;
-    lastTime = currentTime;
-    const deltaTime = deltaTimeMs / 1000; // Convert to seconds
+    try {
+        const deltaTimeMs = currentTime - lastTime;
+        lastTime = currentTime;
+        const deltaTime = deltaTimeMs / 1000; // Convert to seconds
 
-    // If game is paused, only render
-    if (gameState.getGameState() === gameState.GameState.PAUSED) {
-        renderer.render(scene, camera);
-        return;
-    }
+        // If game is paused, only render
+        if (gameState.getGameState() === gameState.GameState.PAUSED) {
+            renderer.render(scene, camera);
+            return;
+        }
 
     animationTime += 16; // ~60fps for clover animation
 
@@ -383,7 +393,12 @@ function animate(currentTime) {
         levelManager.getBees()
     );
 
-    renderer.render(scene, camera);
+        renderer.render(scene, camera);
+    } catch (error) {
+        // Log error but don't stop the animation loop
+        errorHandler.handleError(error, 'Animation Loop');
+        console.error('Error in animation loop:', error);
+    }
 }
 
 // ============================================

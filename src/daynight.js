@@ -807,9 +807,15 @@ class DayNightCycle {
                 break;
         }
 
-        this.phaseIcon.textContent = icon;
-        this.phaseText.textContent = text;
-        this.timeDisplay.style.background = bgColor;
+        if (this.phaseIcon) {
+            this.phaseIcon.textContent = icon;
+        }
+        if (this.phaseText) {
+            this.phaseText.textContent = text;
+        }
+        if (this.timeDisplay) {
+            this.timeDisplay.style.background = bgColor;
+        }
     }
 
     // Get current phase for external use

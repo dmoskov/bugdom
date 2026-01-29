@@ -49,15 +49,23 @@ class AudioManager {
 
     // Resume context if suspended (browser autoplay policy)
     async resume() {
-        if (this.context && this.context.state === 'suspended') {
-            await this.context.resume();
+        try {
+            if (this.context && this.context.state === 'suspended') {
+                await this.context.resume();
+            }
+        } catch (e) {
+            console.error('Failed to resume audio context:', e);
         }
     }
 
     // Pause audio context
     async pause() {
-        if (this.context && this.context.state === 'running') {
-            await this.context.suspend();
+        try {
+            if (this.context && this.context.state === 'running') {
+                await this.context.suspend();
+            }
+        } catch (e) {
+            console.error('Failed to pause audio context:', e);
         }
     }
 
