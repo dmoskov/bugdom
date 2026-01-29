@@ -17,6 +17,9 @@ export class UIManager {
     this.WORLD_SIZE = 100; // -50 to 50 in game units
     this.MINIMAP_SCALE = this.MINIMAP_SIZE / this.WORLD_SIZE;
 
+    // Track event listeners for cleanup
+    this.eventListeners = [];
+
     this.initMinimap();
   }
 
@@ -645,7 +648,7 @@ export class UIManager {
 
     if (difficultyButtons && difficultyDesc) {
       difficultyButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
+        const difficultyHandler = () => {
           // Remove selected class from all buttons
           difficultyButtons.forEach(b => b.classList.remove('selected'));
 
@@ -663,7 +666,9 @@ export class UIManager {
           if (onSelect) {
             onSelect(selectedDifficulty);
           }
-        });
+        };
+        btn.addEventListener('click', difficultyHandler);
+        this.eventListeners.push({ element: btn, event: 'click', handler: difficultyHandler });
       });
     }
   }
@@ -677,39 +682,45 @@ export class UIManager {
     const startButton = document.getElementById('start-button');
     if (startButton && callbacks.onStart) {
       startButton.addEventListener('click', callbacks.onStart);
+      this.eventListeners.push({ element: startButton, event: 'click', handler: callbacks.onStart });
     }
 
     // Pause/Resume buttons
     const pauseButton = document.getElementById('pause-button');
     if (pauseButton && callbacks.onPause) {
       pauseButton.addEventListener('click', callbacks.onPause);
+      this.eventListeners.push({ element: pauseButton, event: 'click', handler: callbacks.onPause });
     }
 
     const resumeButton = document.getElementById('resume-button');
     if (resumeButton && callbacks.onResume) {
       resumeButton.addEventListener('click', callbacks.onResume);
+      this.eventListeners.push({ element: resumeButton, event: 'click', handler: callbacks.onResume });
     }
 
     const restartButton = document.getElementById('restart-button');
     if (restartButton && callbacks.onRestart) {
       restartButton.addEventListener('click', callbacks.onRestart);
+      this.eventListeners.push({ element: restartButton, event: 'click', handler: callbacks.onRestart });
     }
 
     // Help buttons
     const helpButton = document.getElementById('help-button');
     if (helpButton && callbacks.onHelp) {
       helpButton.addEventListener('click', callbacks.onHelp);
+      this.eventListeners.push({ element: helpButton, event: 'click', handler: callbacks.onHelp });
     }
 
     const helpClose = document.getElementById('help-close');
     if (helpClose && callbacks.onHelpClose) {
       helpClose.addEventListener('click', callbacks.onHelpClose);
+      this.eventListeners.push({ element: helpClose, event: 'click', handler: callbacks.onHelpClose });
     }
 
     // Audio controls
     const muteBtn = document.getElementById('mute-btn');
     if (muteBtn && callbacks.onMuteToggle) {
-      muteBtn.addEventListener('click', () => {
+      const muteBtnHandler = () => {
         // Play UI click sound before toggling (so it can be heard)
         if (!this.audioManager.getMuteState()) {
           this.audioManager.playUIClick();
@@ -721,28 +732,58 @@ export class UIManager {
         if (callbacks.onMuteToggle) {
           callbacks.onMuteToggle(isMuted);
         }
-      });
+      };
+      muteBtn.addEventListener('click', muteBtnHandler);
+      this.eventListeners.push({ element: muteBtn, event: 'click', handler: muteBtnHandler });
     }
 
     const musicVolume = document.getElementById('music-volume');
     if (musicVolume && callbacks.onMusicVolumeChange) {
-      musicVolume.addEventListener('input', (e) => {
+      const musicVolumeHandler = (e) => {
         this.audioManager.setMusicVolume(e.target.value / 100);
         callbacks.onMusicVolumeChange(e.target.value / 100);
-      });
+      };
+      musicVolume.addEventListener('input', musicVolumeHandler);
+      this.eventListeners.push({ element: musicVolume, event: 'input', handler: musicVolumeHandler });
     }
 
     const sfxVolume = document.getElementById('sfx-volume');
     if (sfxVolume && callbacks.onSfxVolumeChange) {
-      sfxVolume.addEventListener('input', (e) => {
+      const sfxVolumeHandler = (e) => {
         this.audioManager.setSfxVolume(e.target.value / 100);
         callbacks.onSfxVolumeChange(e.target.value / 100);
-      });
+      };
+      sfxVolume.addEventListener('input', sfxVolumeHandler);
+      this.eventListeners.push({ element: sfxVolume, event: 'input', handler: sfxVolumeHandler });
     }
 
     // Keyboard shortcuts
     if (callbacks.onKeyDown) {
       document.addEventListener('keydown', callbacks.onKeyDown);
+      this.eventListeners.push({ element: document, event: 'keydown', handler: callbacks.onKeyDown });
+    }
+  }
+
+  // ============================================
+  // CLEANUP
+  // ============================================
+
+  cleanup() {
+    // Remove all tracked event listeners
+    this.eventListeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+    this.eventListeners = [];
+
+    // Remove any dynamically created overlays
+    const victoryScreen = document.getElementById('victory-screen');
+    if (victoryScreen) {
+      victoryScreen.remove();
+    }
+
+    const gameOverScreen = document.getElementById('game-over');
+    if (gameOverScreen) {
+      gameOverScreen.remove();
     }
   }
 }

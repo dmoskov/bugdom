@@ -18,6 +18,8 @@ import { UIManager } from './ui.js';
 import { LevelManager } from './levels.js';
 import { GameLoop } from './gameLoop.js';
 import { initializeScene, setupWindowResize } from './sceneSetup.js';
+import { cleanupTouchControls } from './touch.js';
+import { errorHandler } from './errorHandler.js';
 
 // ============================================
 // INITIALIZE SCENE AND RENDERER
@@ -159,6 +161,8 @@ function resumeGame() {
  * Restart game
  */
 function restartGame() {
+    // Clean up event listeners before reload
+    cleanupGame();
     location.reload();
 }
 
@@ -204,8 +208,43 @@ uiManager.setupUIEventHandlers({
     onDifficultySelect: selectDifficulty
 });
 
-// Setup window resize handler
-setupWindowResize(renderer, cameraController);
+// Setup window resize handler and store cleanup function
+const cleanupWindowResize = setupWindowResize(renderer, cameraController);
+
+// ============================================
+// CLEANUP FUNCTION
+// ============================================
+/**
+ * Cleanup all event listeners to prevent memory leaks
+ * Called when game is being destroyed or reset
+ */
+function cleanupGame() {
+    // Cleanup UI event listeners
+    uiManager.cleanup();
+
+    // Cleanup input manager
+    inputManager.cleanup();
+
+    // Cleanup camera controller
+    cameraController.cleanup();
+
+    // Cleanup touch controls
+    cleanupTouchControls();
+
+    // Cleanup window resize listener
+    if (cleanupWindowResize) {
+        cleanupWindowResize();
+    }
+
+    // Cleanup error handler
+    errorHandler.cleanup();
+}
+
+// Make cleanup available globally for testing/debugging
+window.cleanupGame = cleanupGame;
+
+// Cleanup on page unload to prevent memory leaks
+window.addEventListener('beforeunload', cleanupGame);
 
 // ============================================
 // START GAME LOOP
