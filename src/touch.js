@@ -155,8 +155,6 @@ export function initTouchControls() {
     if (touchUI) {
         touchUI.classList.toggle('active', isMobile);
     }
-
-    console.log('Touch controls initialized:', { isMobile, touchUI: !!touchUI });
 }
 
 // Export touch controls state

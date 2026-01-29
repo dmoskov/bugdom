@@ -236,7 +236,6 @@ function takeDamage(player, amount, systems) {
 
     if (player.userData.health <= 0) {
         // Player died
-        console.log('Player died!');
         // Reset or game over logic here
     }
 }
@@ -315,12 +314,4 @@ export function setupTestingKeyboard(systems, player, camera) {
                 break;
         }
     });
-
-    console.log('Testing keyboard shortcuts enabled:');
-    console.log('  P - Create particle burst');
-    console.log('  O - Create ripple effect');
-    console.log('  I - Spawn test items');
-    console.log('  U - Spawn spider enemy');
-    console.log('  Y - Spawn slug enemy');
-    console.log('  T - Create test explosion');
 }
