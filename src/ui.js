@@ -296,7 +296,12 @@ export class UIManager {
   // ============================================
 
   showVictoryScreen(timeString, stats = {}) {
-    // Add CSS animations
+    this.addVictoryScreenStyles();
+    const overlay = this.createVictoryOverlay(timeString);
+    document.body.appendChild(overlay);
+  }
+
+  addVictoryScreenStyles() {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes fadeIn {
@@ -361,8 +366,9 @@ export class UIManager {
       }
     `;
     document.head.appendChild(style);
+  }
 
-    // Create victory overlay
+  createVictoryOverlay(timeString) {
     const overlay = document.createElement('div');
     overlay.id = 'victory-screen';
     overlay.style.cssText = `
@@ -383,12 +389,24 @@ export class UIManager {
       cursor: pointer;
     `;
 
+    overlay.innerHTML = this.getVictoryHTML(timeString);
+
+    // Make entire overlay clickable
+    const overlayClickHandler = () => {
+      location.reload();
+    };
+    overlay.addEventListener('click', overlayClickHandler);
+    this.eventListeners.push({ element: overlay, event: 'click', handler: overlayClickHandler });
+
+    return overlay;
+  }
+
+  getVictoryHTML(timeString) {
     const score = this.gameState.getScore();
     const highScore = this.gameState.getHighScore();
     const cloversCollected = this.gameState.getCloversCollected();
     const totalClovers = this.gameState.getTotalClovers();
     const currentLevel = this.gameState.getCurrentLevel();
-    const difficulty = this.gameState.getSelectedDifficulty();
     const difficultyPreset = this.gameState.getDifficultyPreset();
     const isNewHighScore = this.gameState.getIsNewHighScore();
 
@@ -396,7 +414,7 @@ export class UIManager {
       ? '<p style="font-size: 28px; color: #ffcc00; margin: 10px 0; animation: sparkle 1.5s ease-in-out infinite;">🎉 NEW HIGH SCORE! 🎉</p>'
       : '';
 
-    overlay.innerHTML = `
+    return `
       <h1 style="font-size: 64px; color: gold; margin-bottom: 20px;">LEVEL COMPLETE!</h1>
       ${highScoreMessage}
       <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 30px;">
@@ -426,19 +444,15 @@ export class UIManager {
       </div>
       <p class="tap-hint">(Tap anywhere to restart)</p>
     `;
-
-    // Make entire overlay clickable
-    const overlayClickHandler = () => {
-      location.reload();
-    };
-    overlay.addEventListener('click', overlayClickHandler);
-    this.eventListeners.push({ element: overlay, event: 'click', handler: overlayClickHandler });
-
-    document.body.appendChild(overlay);
   }
 
   showGameOverScreen(timeString, stats = {}) {
-    // Add game over specific styles
+    this.addGameOverScreenStyles();
+    const overlay = this.createGameOverOverlay(timeString, stats);
+    document.body.appendChild(overlay);
+  }
+
+  addGameOverScreenStyles() {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes fadeInGameOver {
@@ -506,8 +520,9 @@ export class UIManager {
       }
     `;
     document.head.appendChild(style);
+  }
 
-    // Create game over overlay
+  createGameOverOverlay(timeString, stats) {
     const overlay = document.createElement('div');
     overlay.id = 'game-over';
     overlay.style.cssText = `
@@ -527,6 +542,19 @@ export class UIManager {
       cursor: pointer;
     `;
 
+    overlay.innerHTML = this.getGameOverHTML(timeString, stats);
+
+    // Make entire overlay clickable
+    const overlayClickHandler = () => {
+      location.reload();
+    };
+    overlay.addEventListener('click', overlayClickHandler);
+    this.eventListeners.push({ element: overlay, event: 'click', handler: overlayClickHandler });
+
+    return overlay;
+  }
+
+  getGameOverHTML(timeString, stats) {
     const score = this.gameState.getScore();
     const highScore = this.gameState.getHighScore();
     const cloversCollected = this.gameState.getCloversCollected();
@@ -539,7 +567,7 @@ export class UIManager {
       ? '<p style="font-size: 24px; color: #ffcc00; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>'
       : '';
 
-    overlay.innerHTML = `
+    return `
       <h1 style="font-size: 72px; color: #cc2222; margin-bottom: 10px;">GAME OVER</h1>
       <p style="font-size: 18px; color: #888; margin-bottom: 10px;">${enemyMsg}</p>
       ${highScoreMessage}
@@ -568,15 +596,6 @@ export class UIManager {
       <button onclick="location.reload()">Try Again</button>
       <p class="tap-hint">(Tap anywhere to try again)</p>
     `;
-
-    // Make entire overlay clickable
-    const overlayClickHandler = () => {
-      location.reload();
-    };
-    overlay.addEventListener('click', overlayClickHandler);
-    this.eventListeners.push({ element: overlay, event: 'click', handler: overlayClickHandler });
-
-    document.body.appendChild(overlay);
   }
 
   showPauseOverlay() {

@@ -6,18 +6,27 @@
 
 export class GameStateManager {
   constructor() {
-    // ============================================
-    // SCORE STATE
-    // ============================================
+    this.initializeScoreState();
+    this.initializeGameState();
+    this.initializeDifficultySystem();
+    this.initializeComboSystem();
+    this.initializeHealthSystem();
+    this.initializePowerUpSystem();
+    this.initializeEnemySpawnSystem();
+
+    // Load persisted high score
+    this.loadHighScore();
+  }
+
+  initializeScoreState() {
     this.score = 0;
     this.highScore = 0;
     this.isNewHighScore = false;
     this.cloversCollected = 0;
     this.TOTAL_CLOVERS = 30;
+  }
 
-    // ============================================
-    // GAME STATE ENUM AND VARIABLES
-    // ============================================
+  initializeGameState() {
     this.GameState = {
       PLAYING: 'playing',
       PAUSED: 'paused',
@@ -27,11 +36,9 @@ export class GameStateManager {
     this.gameWon = false;
     this.gameStartTime = 0;
     this.pausedTime = 0; // Track time spent paused
+  }
 
-    // ============================================
-    // DIFFICULTY & PROGRESSION SYSTEM
-    // ============================================
-
+  initializeDifficultySystem() {
     // Base difficulty presets
     this.DIFFICULTY_PRESETS = {
       easy: {
@@ -90,27 +97,24 @@ export class GameStateManager {
       9: { enemySpeed: 0.12, maxEnemies: 13, spawnRate: 4500 }, // Reduced: was 14 enemies
       10: { enemySpeed: 0.13, maxEnemies: 15, spawnRate: 4500 } // Reduced: was 16 enemies, 4000ms
     };
+  }
 
-    // ============================================
-    // COMBO SYSTEM
-    // ============================================
+  initializeComboSystem() {
     this.comboCount = 0;
     this.comboMultiplier = 1;
     this.lastCollectTime = 0;
     this.COMBO_WINDOW = 3000; // 3 seconds to maintain combo
     this.MAX_COMBO_MULTIPLIER = 5;
+  }
 
-    // ============================================
-    // PLAYER HEALTH
-    // ============================================
+  initializeHealthSystem() {
     this.BASE_MAX_HEALTH = 100;
     this.MAX_HEALTH = 100; // Adjusted on game start
     this.playerHealth = 100; // Adjusted on game start
     this.extraLives = 0;
+  }
 
-    // ============================================
-    // POWER-UP STATES
-    // ============================================
+  initializePowerUpSystem() {
     this.speedBoostActive = false;
     this.speedBoostEndTime = 0;
     this.invincibilityActive = false;
@@ -118,14 +122,10 @@ export class GameStateManager {
     this.SPEED_BOOST_MULTIPLIER = 1.5;
     this.SPEED_BOOST_DURATION = 8000; // 8 seconds
     this.INVINCIBILITY_DURATION = 10000; // 10 seconds
+  }
 
-    // ============================================
-    // ENEMY SPAWN TIMING
-    // ============================================
+  initializeEnemySpawnSystem() {
     this.lastEnemySpawnTime = 0;
-
-    // Load persisted high score
-    this.loadHighScore();
   }
 
   // ============================================

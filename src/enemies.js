@@ -40,7 +40,28 @@ export class Spider {
     createSpiderMesh() {
         const spiderGroup = new THREE.Group();
 
-        // Body (main ellipsoid)
+        // Create body parts
+        const body = this.createSpiderBody();
+        const head = this.createSpiderHead();
+        spiderGroup.add(body);
+        spiderGroup.add(head);
+
+        // Add eyes
+        this.addSpiderEyes(spiderGroup);
+
+        // Add legs
+        const legs = this.createSpiderLegs(spiderGroup);
+
+        spiderGroup.userData.legs = legs;
+        spiderGroup.userData.body = body;
+        spiderGroup.userData.head = head;
+
+        this.mesh = spiderGroup;
+        this.mesh.userData.enemyType = 'spider';
+        this.mesh.userData.controller = this;
+    }
+
+    createSpiderBody() {
         const bodyGeometry = new THREE.SphereGeometry(0.5, 16, 12);
         bodyGeometry.scale(1.2, 0.8, 1.5); // Elongated spider body
         const bodyMaterial = new THREE.MeshStandardMaterial({
@@ -51,9 +72,10 @@ export class Spider {
         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
         body.position.y = 0.4;
         body.castShadow = true;
-        spiderGroup.add(body);
+        return body;
+    }
 
-        // Head/cephalothorax (smaller sphere in front)
+    createSpiderHead() {
         const headGeometry = new THREE.SphereGeometry(0.35, 12, 10);
         const headMaterial = new THREE.MeshStandardMaterial({
             color: 0x2a2a2a, // Slightly lighter black
@@ -63,9 +85,10 @@ export class Spider {
         const head = new THREE.Mesh(headGeometry, headMaterial);
         head.position.set(0, 0.4, 0.7);
         head.castShadow = true;
-        spiderGroup.add(head);
+        return head;
+    }
 
-        // Eyes (8 small red glowing eyes)
+    addSpiderEyes(spiderGroup) {
         const eyeGeometry = new THREE.SphereGeometry(0.05, 6, 4);
         const eyeMaterial = new THREE.MeshStandardMaterial({
             color: 0xff0000,
@@ -89,8 +112,9 @@ export class Spider {
             eye.position.set(pos.x, pos.y, pos.z);
             spiderGroup.add(eye);
         });
+    }
 
-        // 8 Legs (4 on each side)
+    createSpiderLegs(spiderGroup) {
         const legs = [];
         const legSegmentGeometry = new THREE.CylinderGeometry(0.03, 0.02, 0.6, 6);
         const legMaterial = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
@@ -107,39 +131,39 @@ export class Spider {
         ];
 
         legBasePositions.forEach((pos, i) => {
-            const legGroup = new THREE.Group();
-
-            // Upper leg segment
-            const upperLeg = new THREE.Mesh(legSegmentGeometry, legMaterial);
-            upperLeg.position.set(0, -0.3, 0);
-            upperLeg.rotation.z = pos.side * 0.8;
-            upperLeg.rotation.x = 0.3;
-            upperLeg.castShadow = true;
-            legGroup.add(upperLeg);
-
-            // Lower leg segment
-            const lowerLeg = new THREE.Mesh(legSegmentGeometry, legMaterial);
-            lowerLeg.position.set(pos.side * 0.4, -0.6, 0.2);
-            lowerLeg.rotation.z = pos.side * 1.2;
-            lowerLeg.rotation.x = -0.5;
-            lowerLeg.castShadow = true;
-            legGroup.add(lowerLeg);
-
-            legGroup.position.set(pos.x, 0.4, pos.z);
-            legGroup.userData.legIndex = i;
-            legGroup.userData.side = pos.side;
-            legGroup.userData.baseRotation = legGroup.rotation.clone();
+            const legGroup = this.createSpiderLeg(legSegmentGeometry, legMaterial, pos, i);
             spiderGroup.add(legGroup);
             legs.push(legGroup);
         });
 
-        spiderGroup.userData.legs = legs;
-        spiderGroup.userData.body = body;
-        spiderGroup.userData.head = head;
+        return legs;
+    }
 
-        this.mesh = spiderGroup;
-        this.mesh.userData.enemyType = 'spider';
-        this.mesh.userData.controller = this;
+    createSpiderLeg(legSegmentGeometry, legMaterial, pos, i) {
+        const legGroup = new THREE.Group();
+
+        // Upper leg segment
+        const upperLeg = new THREE.Mesh(legSegmentGeometry, legMaterial);
+        upperLeg.position.set(0, -0.3, 0);
+        upperLeg.rotation.z = pos.side * 0.8;
+        upperLeg.rotation.x = 0.3;
+        upperLeg.castShadow = true;
+        legGroup.add(upperLeg);
+
+        // Lower leg segment
+        const lowerLeg = new THREE.Mesh(legSegmentGeometry, legMaterial);
+        lowerLeg.position.set(pos.side * 0.4, -0.6, 0.2);
+        lowerLeg.rotation.z = pos.side * 1.2;
+        lowerLeg.rotation.x = -0.5;
+        lowerLeg.castShadow = true;
+        legGroup.add(lowerLeg);
+
+        legGroup.position.set(pos.x, 0.4, pos.z);
+        legGroup.userData.legIndex = i;
+        legGroup.userData.side = pos.side;
+        legGroup.userData.baseRotation = legGroup.rotation.clone();
+
+        return legGroup;
     }
 
     // State: WAITING - Hidden, drops when player approaches

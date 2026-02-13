@@ -520,77 +520,84 @@ export class LevelManager {
      * Apply level-specific environmental effects and mechanics
      */
     applyLevelEnvironment(level, ambientLight, directionalLight, scene, enemyManager, collectiblesManager) {
-        // Level 3: Misty atmosphere with increased spider activity
         if (level === 3) {
-            scene.fog = new THREE.Fog(0x87ceeb, 30, 120); // Denser fog
-            // Adjust ambient light to create misty feel
-            if (ambientLight) {
-                ambientLight.intensity = 0.5; // Slightly dimmer
-            }
-            if (directionalLight) {
-                directionalLight.intensity = 0.7; // Softer shadows
-            }
-            // Spawn additional spiders for level 3
-            const spidersToAdd = 2;
-            for (let i = 0; i < spidersToAdd; i++) {
-                setTimeout(() => {
-                    const x = (Math.random() - 0.5) * 80;
-                    const z = (Math.random() - 0.5) * 80;
-                    enemyManager.spawnSpider(x, 8, z);
-                }, i * 1000);
-            }
+            this.applyLevel3Environment(ambientLight, directionalLight, scene, enemyManager);
+        } else if (level === 4) {
+            this.applyLevel4Environment(ambientLight, directionalLight, scene, enemyManager, collectiblesManager);
+        } else if (level >= 5) {
+            this.applyLevel5PlusEnvironment(ambientLight, directionalLight, scene);
+        } else {
+            this.applyDefaultEnvironment(ambientLight, directionalLight);
         }
-        // Level 4: Darker ambiance with slug trails and more variety
-        else if (level === 4) {
-            scene.fog = new THREE.Fog(0x7ba8c4, 40, 140); // Slightly darker fog
-            // Darker lighting for level 4
-            if (ambientLight) {
-                ambientLight.intensity = 0.45; // Even dimmer
-            }
-            if (directionalLight) {
-                directionalLight.intensity = 0.65;
-                directionalLight.color.setHex(0xf0e6d2); // Slightly warmer tint
-            }
-            // Spawn slugs for level 4
-            const slugsToAdd = 3;
-            for (let i = 0; i < slugsToAdd; i++) {
-                setTimeout(() => {
-                    const x = (Math.random() - 0.5) * 80;
-                    const z = (Math.random() - 0.5) * 80;
-                    enemyManager.spawnSlug(x, 0.5, z);
-                }, i * 1200);
-            }
-            // Add extra power-ups for compensation
-            const extraPowerUps = 2;
-            for (let i = 0; i < extraPowerUps; i++) {
-                setTimeout(() => {
-                    const x = (Math.random() - 0.5) * 70;
-                    const z = (Math.random() - 0.5) * 70;
-                    const powerUpType = Math.random() < 0.5 ? 'speed' : 'invincibility';
-                    collectiblesManager.spawnMushroom(new THREE.Vector3(x, 1, z), powerUpType);
-                }, i * 1500 + 500);
-            }
+    }
+
+    applyLevel3Environment(ambientLight, directionalLight, scene, enemyManager) {
+        scene.fog = new THREE.Fog(0x87ceeb, 30, 120); // Denser fog
+        if (ambientLight) {
+            ambientLight.intensity = 0.5; // Slightly dimmer
         }
-        // Level 5+: Return to standard fog but darker atmosphere
-        else if (level >= 5) {
-            scene.fog = new THREE.Fog(0x6a95b0, 35, 150);
-            if (ambientLight) {
-                ambientLight.intensity = 0.5;
-            }
-            if (directionalLight) {
-                directionalLight.intensity = 0.7;
-                directionalLight.color.setHex(0xffffff); // Reset to white
-            }
+        if (directionalLight) {
+            directionalLight.intensity = 0.7; // Softer shadows
         }
-        // Lower levels: Restore default lighting
-        else {
-            if (ambientLight) {
-                ambientLight.intensity = 0.6; // Default
-            }
-            if (directionalLight) {
-                directionalLight.intensity = 0.8; // Default
-                directionalLight.color.setHex(0xffffff);
-            }
+        // Spawn additional spiders for level 3
+        const spidersToAdd = 2;
+        for (let i = 0; i < spidersToAdd; i++) {
+            setTimeout(() => {
+                const x = (Math.random() - 0.5) * 80;
+                const z = (Math.random() - 0.5) * 80;
+                enemyManager.spawnSpider(x, 8, z);
+            }, i * 1000);
+        }
+    }
+
+    applyLevel4Environment(ambientLight, directionalLight, scene, enemyManager, collectiblesManager) {
+        scene.fog = new THREE.Fog(0x7ba8c4, 40, 140); // Slightly darker fog
+        if (ambientLight) {
+            ambientLight.intensity = 0.45; // Even dimmer
+        }
+        if (directionalLight) {
+            directionalLight.intensity = 0.65;
+            directionalLight.color.setHex(0xf0e6d2); // Slightly warmer tint
+        }
+        // Spawn slugs for level 4
+        const slugsToAdd = 3;
+        for (let i = 0; i < slugsToAdd; i++) {
+            setTimeout(() => {
+                const x = (Math.random() - 0.5) * 80;
+                const z = (Math.random() - 0.5) * 80;
+                enemyManager.spawnSlug(x, 0.5, z);
+            }, i * 1200);
+        }
+        // Add extra power-ups for compensation
+        const extraPowerUps = 2;
+        for (let i = 0; i < extraPowerUps; i++) {
+            setTimeout(() => {
+                const x = (Math.random() - 0.5) * 70;
+                const z = (Math.random() - 0.5) * 70;
+                const powerUpType = Math.random() < 0.5 ? 'speed' : 'invincibility';
+                collectiblesManager.spawnMushroom(new THREE.Vector3(x, 1, z), powerUpType);
+            }, i * 1500 + 500);
+        }
+    }
+
+    applyLevel5PlusEnvironment(ambientLight, directionalLight, scene) {
+        scene.fog = new THREE.Fog(0x6a95b0, 35, 150);
+        if (ambientLight) {
+            ambientLight.intensity = 0.5;
+        }
+        if (directionalLight) {
+            directionalLight.intensity = 0.7;
+            directionalLight.color.setHex(0xffffff); // Reset to white
+        }
+    }
+
+    applyDefaultEnvironment(ambientLight, directionalLight) {
+        if (ambientLight) {
+            ambientLight.intensity = 0.6; // Default
+        }
+        if (directionalLight) {
+            directionalLight.intensity = 0.8; // Default
+            directionalLight.color.setHex(0xffffff);
         }
     }
 
@@ -604,7 +611,21 @@ export class LevelManager {
     createEnemyAnt() {
         const antGroup = new THREE.Group();
 
-        // Body (main ellipsoid sphere) - RED
+        this.addAntBody(antGroup);
+        this.addAntHead(antGroup);
+        this.addAntEyes(antGroup);
+        this.addAntMandibles(antGroup);
+        this.addAntAntennae(antGroup);
+        this.addAntLegs(antGroup);
+
+        // Store reference to legs for animation
+        antGroup.userData.legs = antGroup.children.filter(child => child.userData.legIndex !== undefined);
+        antGroup.userData.legAnimationTime = Math.random() * Math.PI * 2;
+
+        return antGroup;
+    }
+
+    addAntBody(antGroup) {
         const bodyGeometry = new THREE.SphereGeometry(0.5, 16, 12);
         bodyGeometry.scale(1, 0.6, 1.3);
         const bodyMaterial = new THREE.MeshStandardMaterial({
@@ -616,8 +637,9 @@ export class LevelManager {
         body.position.y = 0.4;
         body.castShadow = true;
         antGroup.add(body);
+    }
 
-        // Head (smaller sphere) - Darker red
+    addAntHead(antGroup) {
         const headGeometry = new THREE.SphereGeometry(0.3, 12, 10);
         const headMaterial = new THREE.MeshStandardMaterial({
             color: 0x991111, // Darker red
@@ -628,8 +650,9 @@ export class LevelManager {
         head.position.set(0, 0.5, 0.6);
         head.castShadow = true;
         antGroup.add(head);
+    }
 
-        // Eyes (two small black spheres)
+    addAntEyes(antGroup) {
         const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 6);
         const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
 
@@ -638,25 +661,27 @@ export class LevelManager {
             eye.position.set(xOffset, 0.55, 0.85);
             antGroup.add(eye);
         });
+    }
 
-        // Mandibles (two small cone shapes)
+    addAntMandibles(antGroup) {
         const mandibleGeometry = new THREE.ConeGeometry(0.06, 0.2, 6);
         const mandibleMaterial = new THREE.MeshStandardMaterial({ color: 0x661111 });
 
-        [-0.1, 0.1].forEach((xOffset, i) => {
+        [-0.1, 0.1].forEach((xOffset) => {
             const mandible = new THREE.Mesh(mandibleGeometry, mandibleMaterial);
             mandible.position.set(xOffset, 0.4, 0.9);
             mandible.rotation.x = Math.PI / 2;
             mandible.rotation.z = xOffset > 0 ? 0.3 : -0.3;
             antGroup.add(mandible);
         });
+    }
 
-        // Antennae
+    addAntAntennae(antGroup) {
         const antennaGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.35, 6);
         const antennaMaterial = new THREE.MeshStandardMaterial({ color: 0x661111 });
         const antennaTipGeometry = new THREE.SphereGeometry(0.04, 6, 4);
 
-        [-0.1, 0.1].forEach((xOffset, i) => {
+        [-0.1, 0.1].forEach((xOffset) => {
             const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
             antenna.position.set(xOffset, 0.85, 0.7);
             antenna.rotation.x = Math.PI / 6;
@@ -667,8 +692,9 @@ export class LevelManager {
             tip.position.set(xOffset * 1.3, 0.98, 0.82);
             antGroup.add(tip);
         });
+    }
 
-        // Legs (6 legs - 3 on each side)
+    addAntLegs(antGroup) {
         const legGeometry = new THREE.CylinderGeometry(0.025, 0.015, 0.45, 6);
         const legMaterial = new THREE.MeshStandardMaterial({ color: 0x661111 });
 
@@ -690,12 +716,6 @@ export class LevelManager {
             leg.userData.legIndex = index;
             antGroup.add(leg);
         });
-
-        // Store reference to legs for animation
-        antGroup.userData.legs = antGroup.children.filter(child => child.userData.legIndex !== undefined);
-        antGroup.userData.legAnimationTime = Math.random() * Math.PI * 2;
-
-        return antGroup;
     }
 
     /**
@@ -795,7 +815,21 @@ export class LevelManager {
     createBee() {
         const beeGroup = new THREE.Group();
 
-        // Body (oval shape) - yellow with black stripes
+        this.addBeeBody(beeGroup);
+        this.addBeeStripes(beeGroup);
+        this.addBeeHead(beeGroup);
+        this.addBeeEyes(beeGroup);
+        this.addBeeStinger(beeGroup);
+        this.addBeeWings(beeGroup);
+
+        // Store wing references for animation
+        beeGroup.userData.wings = beeGroup.children.filter(child => child.userData.wingIndex !== undefined);
+        beeGroup.userData.wingTime = Math.random() * Math.PI * 2;
+
+        return beeGroup;
+    }
+
+    addBeeBody(beeGroup) {
         const bodyGeometry = new THREE.SphereGeometry(0.4, 16, 12);
         bodyGeometry.scale(1, 0.8, 1.4);
         const bodyMaterial = new THREE.MeshStandardMaterial({
@@ -807,8 +841,9 @@ export class LevelManager {
         body.position.y = 0;
         body.castShadow = true;
         beeGroup.add(body);
+    }
 
-        // Black stripes on body
+    addBeeStripes(beeGroup) {
         const stripeGeometry = new THREE.TorusGeometry(0.38, 0.06, 8, 16);
         const stripeMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 });
 
@@ -818,16 +853,18 @@ export class LevelManager {
             stripe.rotation.y = Math.PI / 2;
             beeGroup.add(stripe);
         });
+    }
 
-        // Head - black
+    addBeeHead(beeGroup) {
         const headGeometry = new THREE.SphereGeometry(0.25, 12, 10);
         const headMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
         const head = new THREE.Mesh(headGeometry, headMaterial);
         head.position.set(0, 0.05, 0.55);
         head.castShadow = true;
         beeGroup.add(head);
+    }
 
-        // Eyes (two red spheres)
+    addBeeEyes(beeGroup) {
         const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 6);
         const eyeMaterial = new THREE.MeshStandardMaterial({
             color: 0xff0000,
@@ -840,16 +877,18 @@ export class LevelManager {
             eye.position.set(xOffset, 0.1, 0.72);
             beeGroup.add(eye);
         });
+    }
 
-        // Stinger
+    addBeeStinger(beeGroup) {
         const stingerGeometry = new THREE.ConeGeometry(0.05, 0.3, 6);
         const stingerMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
         const stinger = new THREE.Mesh(stingerGeometry, stingerMaterial);
         stinger.position.set(0, 0, -0.55);
         stinger.rotation.x = Math.PI / 2;
         beeGroup.add(stinger);
+    }
 
-        // Wings (translucent)
+    addBeeWings(beeGroup) {
         const wingGeometry = new THREE.PlaneGeometry(0.6, 0.3);
         const wingMaterial = new THREE.MeshStandardMaterial({
             color: 0xffffff,
@@ -866,12 +905,6 @@ export class LevelManager {
             wing.userData.wingIndex = i;
             beeGroup.add(wing);
         });
-
-        // Store wing references for animation
-        beeGroup.userData.wings = beeGroup.children.filter(child => child.userData.wingIndex !== undefined);
-        beeGroup.userData.wingTime = Math.random() * Math.PI * 2;
-
-        return beeGroup;
     }
 
     /**

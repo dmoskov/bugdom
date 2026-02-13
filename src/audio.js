@@ -551,6 +551,21 @@ class AudioManager {
         const now = this.context.currentTime;
         const loopDuration = 8; // 8 second loop
 
+        // Play all music layers
+        this.playMusicChords(now);
+        this.playMusicMelody(now);
+        this.playMusicBass(now);
+
+        // Schedule next loop
+        setTimeout(() => {
+            if (this.musicPlaying) {
+                this.playMusicLoop();
+            }
+        }, (loopDuration - 0.1) * 1000);
+    }
+
+    // Play chord progression layer
+    playMusicChords(now) {
         // Chord progression: C - Am - F - G (classic happy progression)
         const chords = [
             { notes: [261.63, 329.63, 392], start: 0 },      // C major
@@ -561,44 +576,48 @@ class AudioManager {
 
         chords.forEach(chord => {
             chord.notes.forEach(freq => {
-                const osc = this.context.createOscillator();
-                const gain = this.context.createGain();
-
-                osc.type = 'sine';
-                osc.frequency.value = freq;
-
-                // Add subtle detuning for warmth
-                const detune = this.context.createOscillator();
-                const detuneGain = this.context.createGain();
-                detune.type = 'sine';
-                detune.frequency.value = freq * 1.005; // Slightly sharp
-                detune.connect(detuneGain);
-                detuneGain.connect(this.musicGain);
-                detuneGain.gain.value = 0.15;
-
-                osc.connect(gain);
-                gain.connect(this.musicGain);
-
-                const startTime = now + chord.start;
-                const chordDuration = 1.8;
-
-                gain.gain.setValueAtTime(0, startTime);
-                gain.gain.linearRampToValueAtTime(0.2, startTime + 0.1);
-                gain.gain.setValueAtTime(0.2, startTime + chordDuration - 0.3);
-                gain.gain.linearRampToValueAtTime(0, startTime + chordDuration);
-
-                detuneGain.gain.setValueAtTime(0, startTime);
-                detuneGain.gain.linearRampToValueAtTime(0.15, startTime + 0.1);
-                detuneGain.gain.linearRampToValueAtTime(0, startTime + chordDuration);
-
-                osc.start(startTime);
-                osc.stop(startTime + chordDuration + 0.1);
-                detune.start(startTime);
-                detune.stop(startTime + chordDuration + 0.1);
+                this.playChordNote(freq, now + chord.start, 1.8);
             });
         });
+    }
 
-        // Add a simple melodic line
+    // Play a single chord note with detuning
+    playChordNote(freq, startTime, duration) {
+        const osc = this.context.createOscillator();
+        const gain = this.context.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+
+        // Add subtle detuning for warmth
+        const detune = this.context.createOscillator();
+        const detuneGain = this.context.createGain();
+        detune.type = 'sine';
+        detune.frequency.value = freq * 1.005; // Slightly sharp
+        detune.connect(detuneGain);
+        detuneGain.connect(this.musicGain);
+        detuneGain.gain.value = 0.15;
+
+        osc.connect(gain);
+        gain.connect(this.musicGain);
+
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.1);
+        gain.gain.setValueAtTime(0.2, startTime + duration - 0.3);
+        gain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+        detuneGain.gain.setValueAtTime(0, startTime);
+        detuneGain.gain.linearRampToValueAtTime(0.15, startTime + 0.1);
+        detuneGain.gain.linearRampToValueAtTime(0, startTime + duration);
+
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.1);
+        detune.start(startTime);
+        detune.stop(startTime + duration + 0.1);
+    }
+
+    // Play melodic line layer
+    playMusicMelody(now) {
         const melody = [
             { freq: 523.25, start: 0, dur: 0.5 },    // C5
             { freq: 587.33, start: 0.5, dur: 0.5 },  // D5
@@ -633,8 +652,10 @@ class AudioManager {
             osc.start(startTime);
             osc.stop(startTime + note.dur + 0.1);
         });
+    }
 
-        // Add gentle bass line
+    // Play bass line layer
+    playMusicBass(now) {
         const bass = [
             { freq: 65.41, start: 0, dur: 1.8 },     // C2
             { freq: 55, start: 2, dur: 1.8 },        // A1
@@ -661,13 +682,6 @@ class AudioManager {
             osc.start(startTime);
             osc.stop(startTime + note.dur + 0.1);
         });
-
-        // Schedule next loop
-        setTimeout(() => {
-            if (this.musicPlaying) {
-                this.playMusicLoop();
-            }
-        }, (loopDuration - 0.1) * 1000);
     }
 
     // Stop background music

@@ -252,93 +252,119 @@ export class GameLoop {
 
             this.animationTime += 16; // ~60fps for clover animation
 
-            // Update player
-            const movementInput = this.inputManager.getMovementInput();
-            const isSpeedBoostActive = this.gameState.isSpeedBoostActive();
-            this.player.updateMovement(movementInput, isSpeedBoostActive);
-            this.player.animateLegs(deltaTime);
-            this.player.updateFlash(currentTime);
-
-            // Update camera
-            this.cameraController.update(this.player.getPosition(), this.player.getRotation());
-
-            // Update level elements
-            this.levelManager.animateClovers(this.clovers, this.animationTime);
-
-            // Collision detection (if playing and not won)
-            if (!this.gameState.getGameWon() && this.gameState.getGameState() !== this.gameState.GameState.GAME_OVER) {
-                // Check clover collisions
-                this.collisionManager.checkCloverCollisions(
-                    this.player.getPosition(),
-                    this.clovers,
-                    (clover, isFourLeaf) => this.onCloverCollect(clover, isFourLeaf)
-                );
-
-                // Check collectible collisions
-                this.collisionManager.checkCollectibleCollisions(
-                    this.player.getPosition(),
-                    this.collectiblesManager.collectibles,
-                    (collectible) => {
-                        this.collectiblesManager.collectCollectible(collectible);
-                        this.onCollectibleCollect(collectible);
-                    }
-                );
-
-                // Check enemy collisions
-                this.collisionManager.checkEnemyCollisions(
-                    this.player.getPosition(),
-                    this.levelManager.getEnemies(),
-                    () => this.onEnemyHit(currentTime)
-                );
-
-                // Check bee collisions
-                this.collisionManager.checkBeeCollisions(
-                    this.player.getPosition(),
-                    this.levelManager.getBees(),
-                    () => this.onEnemyHit(currentTime)
-                );
-            }
-
-            // Update managers
-            this.collectiblesManager.update(deltaTime);
-            this.particleEffects.update(deltaTime);
-            this.rippleManager.update(deltaTime);
-
-            if (this.dayNightCycle) {
-                this.dayNightCycle.update(deltaTime);
-            }
-
-            // Update power-ups
-            this.gameState.checkPowerUpExpirations(currentTime);
-
-            // Update combo timer
-            this.gameState.checkComboExpiration(currentTime);
-            this.uiManager.updateComboDisplay();
-
-            // Update enemies
-            const diffSettings = this.gameState.getDifficultySettings(this.gameState.getCurrentLevel());
-            this.levelManager.updateEnemies(this.player.getPosition(), deltaTime, currentTime, diffSettings);
-            this.levelManager.updateBees(this.player.getPosition(), deltaTime, currentTime);
-            this.levelManager.checkBeeSpawn(this.gameState.getCurrentLevel(), currentTime);
-
-            // Update confetti if exists
-            if (this.levelManager.confetti) {
-                this.levelManager.updateConfetti();
-            }
-
-            // Update UI
-            this.uiManager.drawMinimap(
-                this.player.getPosition(),
-                this.player.getRotation(),
-                this.clovers,
-                this.levelManager.getEnemies(),
-                this.levelManager.getBees()
-            );
+            // Update game entities
+            this.updatePlayer(deltaTime, currentTime);
+            this.updateLevelElements();
+            this.checkCollisions(currentTime);
+            this.updateManagers(deltaTime, currentTime);
+            this.updateUI();
 
             this.renderer.render(this.scene, this.camera);
         } catch (error) {
             // Log error but don't stop the animation loop
             console.error('Error in animation loop:', error);
         }
+    }
+
+    /**
+     * Update player state and animations
+     */
+    updatePlayer(deltaTime, currentTime) {
+        const movementInput = this.inputManager.getMovementInput();
+        const isSpeedBoostActive = this.gameState.isSpeedBoostActive();
+        this.player.updateMovement(movementInput, isSpeedBoostActive);
+        this.player.animateLegs(deltaTime);
+        this.player.updateFlash(currentTime);
+        this.cameraController.update(this.player.getPosition(), this.player.getRotation());
+    }
+
+    /**
+     * Update level elements like clovers
+     */
+    updateLevelElements() {
+        this.levelManager.animateClovers(this.clovers, this.animationTime);
+    }
+
+    /**
+     * Check all collision types
+     */
+    checkCollisions(currentTime) {
+        if (this.gameState.getGameWon() || this.gameState.getGameState() === this.gameState.GameState.GAME_OVER) {
+            return;
+        }
+
+        // Check clover collisions
+        this.collisionManager.checkCloverCollisions(
+            this.player.getPosition(),
+            this.clovers,
+            (clover, isFourLeaf) => this.onCloverCollect(clover, isFourLeaf)
+        );
+
+        // Check collectible collisions
+        this.collisionManager.checkCollectibleCollisions(
+            this.player.getPosition(),
+            this.collectiblesManager.collectibles,
+            (collectible) => {
+                this.collectiblesManager.collectCollectible(collectible);
+                this.onCollectibleCollect(collectible);
+            }
+        );
+
+        // Check enemy collisions
+        this.collisionManager.checkEnemyCollisions(
+            this.player.getPosition(),
+            this.levelManager.getEnemies(),
+            () => this.onEnemyHit(currentTime)
+        );
+
+        // Check bee collisions
+        this.collisionManager.checkBeeCollisions(
+            this.player.getPosition(),
+            this.levelManager.getBees(),
+            () => this.onEnemyHit(currentTime)
+        );
+    }
+
+    /**
+     * Update all managers and systems
+     */
+    updateManagers(deltaTime, currentTime) {
+        // Update collectibles and effects
+        this.collectiblesManager.update(deltaTime);
+        this.particleEffects.update(deltaTime);
+        this.rippleManager.update(deltaTime);
+
+        if (this.dayNightCycle) {
+            this.dayNightCycle.update(deltaTime);
+        }
+
+        // Update power-ups and combos
+        this.gameState.checkPowerUpExpirations(currentTime);
+        this.gameState.checkComboExpiration(currentTime);
+
+        // Update enemies
+        const diffSettings = this.gameState.getDifficultySettings(this.gameState.getCurrentLevel());
+        this.levelManager.updateEnemies(this.player.getPosition(), deltaTime, currentTime, diffSettings);
+        this.levelManager.updateBees(this.player.getPosition(), deltaTime, currentTime);
+        this.levelManager.checkBeeSpawn(this.gameState.getCurrentLevel(), currentTime);
+
+        // Update confetti if exists
+        if (this.levelManager.confetti) {
+            this.levelManager.updateConfetti();
+        }
+    }
+
+    /**
+     * Update UI elements
+     */
+    updateUI() {
+        this.uiManager.updateComboDisplay();
+        this.uiManager.drawMinimap(
+            this.player.getPosition(),
+            this.player.getRotation(),
+            this.clovers,
+            this.levelManager.getEnemies(),
+            this.levelManager.getBees()
+        );
     }
 }
