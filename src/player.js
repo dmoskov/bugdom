@@ -43,7 +43,19 @@ export class PlayerCharacter {
   createBugCharacter() {
     const bugGroup = new THREE.Group();
 
-    // Body (main ellipsoid sphere)
+    this.addBugBody(bugGroup);
+    this.addBugHead(bugGroup);
+    this.addBugEyes(bugGroup);
+    this.addBugAntennae(bugGroup);
+    this.addBugLegs(bugGroup);
+
+    // Store reference to legs for animation
+    bugGroup.userData.legs = bugGroup.children.filter(child => child.userData.legIndex !== undefined);
+
+    return bugGroup;
+  }
+
+  addBugBody(bugGroup) {
     const bodyGeometry = new THREE.SphereGeometry(0.6, 16, 12);
     bodyGeometry.scale(1, 0.7, 1.2);
     const bodyMaterial = new THREE.MeshStandardMaterial({
@@ -55,8 +67,9 @@ export class PlayerCharacter {
     body.position.y = 0.5;
     body.castShadow = true;
     bugGroup.add(body);
+  }
 
-    // Head (smaller sphere)
+  addBugHead(bugGroup) {
     const headGeometry = new THREE.SphereGeometry(0.35, 12, 10);
     const headMaterial = new THREE.MeshStandardMaterial({
         color: 0x654321, // Darker brown
@@ -67,8 +80,9 @@ export class PlayerCharacter {
     head.position.set(0, 0.6, 0.7);
     head.castShadow = true;
     bugGroup.add(head);
+  }
 
-    // Eyes (two small white spheres with black pupils)
+  addBugEyes(bugGroup) {
     const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 6);
     const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const pupilGeometry = new THREE.SphereGeometry(0.05, 6, 4);
@@ -83,13 +97,14 @@ export class PlayerCharacter {
         pupil.position.set(xOffset, 0.7, 1.08);
         bugGroup.add(pupil);
     });
+  }
 
-    // Antennae
+  addBugAntennae(bugGroup) {
     const antennaGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.4, 6);
     const antennaMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
     const antennaTipGeometry = new THREE.SphereGeometry(0.05, 6, 4);
 
-    [-0.12, 0.12].forEach((xOffset, i) => {
+    [-0.12, 0.12].forEach((xOffset) => {
         const antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
         antenna.position.set(xOffset, 1.0, 0.8);
         antenna.rotation.x = Math.PI / 6;
@@ -100,8 +115,9 @@ export class PlayerCharacter {
         tip.position.set(xOffset * 1.5, 1.15, 0.95);
         bugGroup.add(tip);
     });
+  }
 
-    // Legs (6 legs - 3 on each side)
+  addBugLegs(bugGroup) {
     const legGeometry = new THREE.CylinderGeometry(0.03, 0.02, 0.5, 6);
     const legMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
 
@@ -123,11 +139,6 @@ export class PlayerCharacter {
         leg.userData.legIndex = index;
         bugGroup.add(leg);
     });
-
-    // Store reference to legs for animation
-    bugGroup.userData.legs = bugGroup.children.filter(child => child.userData.legIndex !== undefined);
-
-    return bugGroup;
   }
 
   /**
