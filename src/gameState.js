@@ -39,63 +39,80 @@ export class GameStateManager {
   }
 
   initializeDifficultySystem() {
-    // Base difficulty presets
-    this.DIFFICULTY_PRESETS = {
+    this.DIFFICULTY_PRESETS = this._createDifficultyPresets();
+    this.selectedDifficulty = 'medium';
+    this._initializeLevelProgression();
+    this.BASE_DIFFICULTY_SETTINGS = this._createBaseDifficultySettings();
+  }
+
+  /**
+   * Create difficulty preset definitions
+   * @private
+   */
+  _createDifficultyPresets() {
+    return {
       easy: {
         name: 'Easy',
         description: 'Relaxed gameplay - Perfect for beginners',
-        playerHealthMultiplier: 1.5,   // 150 health
-        playerSpeedMultiplier: 1.1,    // 10% faster movement
-        enemySpeedMultiplier: 0.7,     // 30% slower enemies
-        enemyHealthMultiplier: 0.7,    // 30% less health
-        enemyCountMultiplier: 0.7,     // Fewer enemies (rounded down)
-        spawnRateMultiplier: 1.5,      // 50% slower spawn rate (higher = slower)
-        damageMultiplier: 0.7          // Take 30% less damage
+        playerHealthMultiplier: 1.5,
+        playerSpeedMultiplier: 1.1,
+        enemySpeedMultiplier: 0.7,
+        enemyHealthMultiplier: 0.7,
+        enemyCountMultiplier: 0.7,
+        spawnRateMultiplier: 1.5,
+        damageMultiplier: 0.7
       },
       medium: {
         name: 'Medium',
         description: 'Balanced gameplay - Recommended for most players',
-        playerHealthMultiplier: 1.0,   // 100 health (normal)
-        playerSpeedMultiplier: 1.0,    // Normal movement
-        enemySpeedMultiplier: 1.0,     // Normal enemy speed
-        enemyHealthMultiplier: 1.0,    // Normal enemy health
-        enemyCountMultiplier: 1.0,     // Normal enemy count
-        spawnRateMultiplier: 1.0,      // Normal spawn rate
-        damageMultiplier: 1.0          // Normal damage
+        playerHealthMultiplier: 1.0,
+        playerSpeedMultiplier: 1.0,
+        enemySpeedMultiplier: 1.0,
+        enemyHealthMultiplier: 1.0,
+        enemyCountMultiplier: 1.0,
+        spawnRateMultiplier: 1.0,
+        damageMultiplier: 1.0
       },
       hard: {
         name: 'Hard',
         description: 'Intense challenge - For experienced players only!',
-        playerHealthMultiplier: 0.75,  // 75 health
-        playerSpeedMultiplier: 0.9,    // 10% slower movement
-        enemySpeedMultiplier: 1.3,     // 30% faster enemies
-        enemyHealthMultiplier: 1.5,    // 50% more health
-        enemyCountMultiplier: 1.3,     // More enemies (rounded up)
-        spawnRateMultiplier: 0.7,      // 30% faster spawn rate (lower = faster)
-        damageMultiplier: 1.5          // Take 50% more damage
+        playerHealthMultiplier: 0.75,
+        playerSpeedMultiplier: 0.9,
+        enemySpeedMultiplier: 1.3,
+        enemyHealthMultiplier: 1.5,
+        enemyCountMultiplier: 1.3,
+        spawnRateMultiplier: 0.7,
+        damageMultiplier: 1.5
       }
     };
+  }
 
-    // Current selected difficulty
-    this.selectedDifficulty = 'medium'; // default
-
-    // Level progression
+  /**
+   * Initialize level progression settings
+   * @private
+   */
+  _initializeLevelProgression() {
     this.currentLevel = 1;
     this.MAX_LEVEL = 10;
-    this.CLOVERS_PER_LEVEL = 3; // Every 3 clovers = level up
+    this.CLOVERS_PER_LEVEL = 3;
+  }
 
-    // Base enemy scaling per level (modified by difficulty preset)
-    this.BASE_DIFFICULTY_SETTINGS = {
+  /**
+   * Create base difficulty settings per level
+   * @private
+   */
+  _createBaseDifficultySettings() {
+    return {
       1: { enemySpeed: 0.04, maxEnemies: 3, spawnRate: 0 },
       2: { enemySpeed: 0.05, maxEnemies: 4, spawnRate: 15000 },
       3: { enemySpeed: 0.06, maxEnemies: 5, spawnRate: 12000 },
       4: { enemySpeed: 0.07, maxEnemies: 6, spawnRate: 10000 },
-      5: { enemySpeed: 0.08, maxEnemies: 7, spawnRate: 9000 },  // Smoothed: was 8 enemies, 8000ms
+      5: { enemySpeed: 0.08, maxEnemies: 7, spawnRate: 9000 },
       6: { enemySpeed: 0.09, maxEnemies: 9, spawnRate: 7000 },
       7: { enemySpeed: 0.10, maxEnemies: 10, spawnRate: 6000 },
-      8: { enemySpeed: 0.11, maxEnemies: 11, spawnRate: 5000 }, // Reduced: was 12 enemies
-      9: { enemySpeed: 0.12, maxEnemies: 13, spawnRate: 4500 }, // Reduced: was 14 enemies
-      10: { enemySpeed: 0.13, maxEnemies: 15, spawnRate: 4500 } // Reduced: was 16 enemies, 4000ms
+      8: { enemySpeed: 0.11, maxEnemies: 11, spawnRate: 5000 },
+      9: { enemySpeed: 0.12, maxEnemies: 13, spawnRate: 4500 },
+      10: { enemySpeed: 0.13, maxEnemies: 15, spawnRate: 4500 }
     };
   }
 

@@ -41,11 +41,28 @@ export class UIManager {
   drawMinimap(playerPos, playerRotation, clovers, enemies, bees) {
     if (!this.minimapCtx) return;
 
-    // Clear the canvas with semi-transparent background
+    this._clearMinimap();
+    this._drawMinimapBoundary();
+    this._drawMinimapClovers(clovers);
+    this._drawMinimapEnemies(enemies);
+    this._drawMinimapBees(bees);
+    this._drawMinimapPlayer(playerPos, playerRotation);
+  }
+
+  /**
+   * Clear minimap canvas
+   * @private
+   */
+  _clearMinimap() {
     this.minimapCtx.fillStyle = 'rgba(0, 0, 0, 0.6)';
     this.minimapCtx.fillRect(0, 0, this.MINIMAP_SIZE, this.MINIMAP_SIZE);
+  }
 
-    // Draw boundary outline
+  /**
+   * Draw minimap boundary outline
+   * @private
+   */
+  _drawMinimapBoundary() {
     this.minimapCtx.strokeStyle = 'rgba(139, 69, 19, 0.5)';
     this.minimapCtx.lineWidth = 2;
     const boundaryPadding = 5 * this.MINIMAP_SCALE;
@@ -55,8 +72,13 @@ export class UIManager {
       this.MINIMAP_SIZE - boundaryPadding * 2,
       this.MINIMAP_SIZE - boundaryPadding * 2
     );
+  }
 
-    // Draw uncollected clovers as yellow dots
+  /**
+   * Draw clovers on minimap
+   * @private
+   */
+  _drawMinimapClovers(clovers) {
     this.minimapCtx.fillStyle = '#ffcc00';
     clovers.forEach(clover => {
       if (!clover.userData.collected) {
@@ -66,8 +88,13 @@ export class UIManager {
         this.minimapCtx.fill();
       }
     });
+  }
 
-    // Draw enemies (ants) as red dots
+  /**
+   * Draw enemies on minimap
+   * @private
+   */
+  _drawMinimapEnemies(enemies) {
     this.minimapCtx.fillStyle = '#ff3333';
     enemies.forEach(enemy => {
       const pos = this.worldToMinimap(enemy.position.x, enemy.position.z);
@@ -75,8 +102,13 @@ export class UIManager {
       this.minimapCtx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
       this.minimapCtx.fill();
     });
+  }
 
-    // Draw bees as orange dots
+  /**
+   * Draw bees on minimap
+   * @private
+   */
+  _drawMinimapBees(bees) {
     this.minimapCtx.fillStyle = '#ff9900';
     bees.forEach(bee => {
       const pos = this.worldToMinimap(bee.position.x, bee.position.z);
@@ -84,8 +116,13 @@ export class UIManager {
       this.minimapCtx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
       this.minimapCtx.fill();
     });
+  }
 
-    // Draw player as green dot with direction indicator
+  /**
+   * Draw player on minimap with direction indicator
+   * @private
+   */
+  _drawMinimapPlayer(playerPos, playerRotation) {
     const playerMapPos = this.worldToMinimap(playerPos.x, playerPos.z);
 
     // Player direction indicator (triangle)
@@ -94,7 +131,7 @@ export class UIManager {
     this.minimapCtx.translate(playerMapPos.x, playerMapPos.y);
     this.minimapCtx.rotate(-playerRotation);
     this.minimapCtx.beginPath();
-    this.minimapCtx.moveTo(0, -6);  // Point forward
+    this.minimapCtx.moveTo(0, -6);
     this.minimapCtx.lineTo(-4, 4);
     this.minimapCtx.lineTo(4, 4);
     this.minimapCtx.closePath();
@@ -700,91 +737,76 @@ export class UIManager {
   // EVENT HANDLERS SETUP
   // ============================================
 
+  /**
+   * Helper to register event listener and track it
+   * @private
+   */
+  _registerEventListener(elementId, eventType, handler) {
+    const element = typeof elementId === 'string' ? document.getElementById(elementId) : elementId;
+    if (element && handler) {
+      element.addEventListener(eventType, handler);
+      this.eventListeners.push({ element, event: eventType, handler });
+    }
+  }
+
   setupUIEventHandlers(callbacks = {}) {
-    // Start button
-    const startButton = document.getElementById('start-button');
-    if (startButton && callbacks.onStart) {
-      startButton.addEventListener('click', callbacks.onStart);
-      this.eventListeners.push({ element: startButton, event: 'click', handler: callbacks.onStart });
-    }
-
-    // Pause/Resume buttons
-    const pauseButton = document.getElementById('pause-button');
-    if (pauseButton && callbacks.onPause) {
-      pauseButton.addEventListener('click', callbacks.onPause);
-      this.eventListeners.push({ element: pauseButton, event: 'click', handler: callbacks.onPause });
-    }
-
-    const resumeButton = document.getElementById('resume-button');
-    if (resumeButton && callbacks.onResume) {
-      resumeButton.addEventListener('click', callbacks.onResume);
-      this.eventListeners.push({ element: resumeButton, event: 'click', handler: callbacks.onResume });
-    }
-
-    const restartButton = document.getElementById('restart-button');
-    if (restartButton && callbacks.onRestart) {
-      restartButton.addEventListener('click', callbacks.onRestart);
-      this.eventListeners.push({ element: restartButton, event: 'click', handler: callbacks.onRestart });
-    }
+    // Game control buttons
+    this._registerEventListener('start-button', 'click', callbacks.onStart);
+    this._registerEventListener('pause-button', 'click', callbacks.onPause);
+    this._registerEventListener('resume-button', 'click', callbacks.onResume);
+    this._registerEventListener('restart-button', 'click', callbacks.onRestart);
 
     // Help buttons
-    const helpButton = document.getElementById('help-button');
-    if (helpButton && callbacks.onHelp) {
-      helpButton.addEventListener('click', callbacks.onHelp);
-      this.eventListeners.push({ element: helpButton, event: 'click', handler: callbacks.onHelp });
-    }
-
-    const helpClose = document.getElementById('help-close');
-    if (helpClose && callbacks.onHelpClose) {
-      helpClose.addEventListener('click', callbacks.onHelpClose);
-      this.eventListeners.push({ element: helpClose, event: 'click', handler: callbacks.onHelpClose });
-    }
+    this._registerEventListener('help-button', 'click', callbacks.onHelp);
+    this._registerEventListener('help-close', 'click', callbacks.onHelpClose);
 
     // Audio controls
-    const muteBtn = document.getElementById('mute-btn');
-    if (muteBtn && callbacks.onMuteToggle) {
-      const muteBtnHandler = () => {
-        // Play UI click sound before toggling (so it can be heard)
-        if (!this.audioManager.getMuteState()) {
-          this.audioManager.playUIClick();
-        }
-        const isMuted = this.audioManager.toggleMute();
-        muteBtn.textContent = isMuted ? '🔇' : '🔊';
-        muteBtn.classList.toggle('muted', isMuted);
-
-        if (callbacks.onMuteToggle) {
-          callbacks.onMuteToggle(isMuted);
-        }
-      };
-      muteBtn.addEventListener('click', muteBtnHandler);
-      this.eventListeners.push({ element: muteBtn, event: 'click', handler: muteBtnHandler });
-    }
-
-    const musicVolume = document.getElementById('music-volume');
-    if (musicVolume && callbacks.onMusicVolumeChange) {
-      const musicVolumeHandler = (e) => {
-        this.audioManager.setMusicVolume(e.target.value / 100);
-        callbacks.onMusicVolumeChange(e.target.value / 100);
-      };
-      musicVolume.addEventListener('input', musicVolumeHandler);
-      this.eventListeners.push({ element: musicVolume, event: 'input', handler: musicVolumeHandler });
-    }
-
-    const sfxVolume = document.getElementById('sfx-volume');
-    if (sfxVolume && callbacks.onSfxVolumeChange) {
-      const sfxVolumeHandler = (e) => {
-        this.audioManager.setSfxVolume(e.target.value / 100);
-        callbacks.onSfxVolumeChange(e.target.value / 100);
-      };
-      sfxVolume.addEventListener('input', sfxVolumeHandler);
-      this.eventListeners.push({ element: sfxVolume, event: 'input', handler: sfxVolumeHandler });
-    }
+    this._setupMuteButton(callbacks);
+    this._setupVolumeControls(callbacks);
 
     // Keyboard shortcuts
-    if (callbacks.onKeyDown) {
-      document.addEventListener('keydown', callbacks.onKeyDown);
-      this.eventListeners.push({ element: document, event: 'keydown', handler: callbacks.onKeyDown });
-    }
+    this._registerEventListener(document, 'keydown', callbacks.onKeyDown);
+  }
+
+  /**
+   * Setup mute button handler
+   * @private
+   */
+  _setupMuteButton(callbacks) {
+    const muteBtn = document.getElementById('mute-btn');
+    if (!muteBtn || !callbacks.onMuteToggle) return;
+
+    const muteBtnHandler = () => {
+      if (!this.audioManager.getMuteState()) {
+        this.audioManager.playUIClick();
+      }
+      const isMuted = this.audioManager.toggleMute();
+      muteBtn.textContent = isMuted ? '🔇' : '🔊';
+      muteBtn.classList.toggle('muted', isMuted);
+
+      if (callbacks.onMuteToggle) {
+        callbacks.onMuteToggle(isMuted);
+      }
+    };
+    this._registerEventListener(muteBtn, 'click', muteBtnHandler);
+  }
+
+  /**
+   * Setup volume control sliders
+   * @private
+   */
+  _setupVolumeControls(callbacks) {
+    const musicVolumeHandler = (e) => {
+      this.audioManager.setMusicVolume(e.target.value / 100);
+      callbacks.onMusicVolumeChange(e.target.value / 100);
+    };
+    this._registerEventListener('music-volume', 'input', callbacks.onMusicVolumeChange && musicVolumeHandler);
+
+    const sfxVolumeHandler = (e) => {
+      this.audioManager.setSfxVolume(e.target.value / 100);
+      callbacks.onSfxVolumeChange(e.target.value / 100);
+    };
+    this._registerEventListener('sfx-volume', 'input', callbacks.onSfxVolumeChange && sfxVolumeHandler);
   }
 
   // ============================================
