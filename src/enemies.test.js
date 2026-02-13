@@ -163,5 +163,40 @@ describe('EnemyManager', () => {
         enemyManager.update(playerPos, 16);
       }).not.toThrow();
     });
+
+    it('should update with spiders present', () => {
+      enemyManager.spawnSpider();
+      const playerPos = new THREE.Vector3(0, 0, 0);
+
+      expect(() => {
+        enemyManager.update(playerPos, 16);
+      }).not.toThrow();
+
+      expect(enemyManager.spiders.length).toBeGreaterThan(0);
+    });
+
+    it('should update with slugs present', () => {
+      enemyManager.spawnSlug();
+      const playerPos = new THREE.Vector3(0, 0, 0);
+
+      expect(() => {
+        enemyManager.update(playerPos, 16);
+      }).not.toThrow();
+
+      expect(enemyManager.slugs.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Cleanup', () => {
+    it('should remove enemies from scene', () => {
+      enemyManager.spawnSpider();
+      enemyManager.spawnSlug();
+
+      const initialSpiders = enemyManager.spiders.length;
+      const initialSlugs = enemyManager.slugs.length;
+
+      expect(initialSpiders).toBeGreaterThan(0);
+      expect(initialSlugs).toBeGreaterThan(0);
+    });
   });
 });

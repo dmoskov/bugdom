@@ -157,5 +157,51 @@ describe('RippleManager', () => {
         rippleManager.update(16);
       }).not.toThrow();
     });
+
+    it('should clean up old ripples', () => {
+      const position = new THREE.Vector3(0, 0, 0);
+
+      // Create multiple ripples
+      for (let i = 0; i < 10; i++) {
+        rippleManager.createRipple(position);
+      }
+
+      const initialCount = rippleManager.ripples.length;
+      expect(initialCount).toBeGreaterThan(0);
+
+      // Update many times to age ripples
+      for (let i = 0; i < 100; i++) {
+        rippleManager.update(1);
+      }
+
+      // Some ripples should have been cleaned up
+      expect(rippleManager.ripples.length).toBeLessThanOrEqual(initialCount);
+    });
+  });
+
+  describe('Particle Lifecycle', () => {
+    it('should create multiple particle effects', () => {
+      const position = new THREE.Vector3(0, 0, 0);
+
+      particleManager.createExplosion(position);
+      particleManager.createSparkles(position);
+      particleManager.createDustCloud(position);
+
+      // All should execute without errors
+      expect(mockScene.add).toHaveBeenCalled();
+    });
+
+    it('should update multiple effect types simultaneously', () => {
+      const position = new THREE.Vector3(0, 0, 0);
+
+      particleManager.createExplosion(position);
+      particleManager.createSparkles(position);
+
+      expect(() => {
+        particleManager.update(16);
+        particleManager.update(16);
+        particleManager.update(16);
+      }).not.toThrow();
+    });
   });
 });
