@@ -1,11 +1,11 @@
 /**
  * Particle Effects Unit Tests
  *
- * Tests for particle systems including ParticleEffectsManager, RippleManager, and GravitoidSystem.
+ * Tests for particle systems including ParticleEffectsManager and RippleManager.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ParticleGroup, ParticleEffectsManager, RippleManager, GravitoidSystem } from './particles.js';
+import { ParticleGroup, ParticleEffectsManager, RippleManager } from './particles.js';
 import * as THREE from 'three';
 
 describe('ParticleGroup', () => {
@@ -155,38 +155,6 @@ describe('RippleManager', () => {
 
       expect(() => {
         rippleManager.update(16);
-      }).not.toThrow();
-    });
-  });
-});
-
-describe('GravitoidSystem', () => {
-  let mockScene;
-  let gravitoidSystem;
-
-  beforeEach(() => {
-    mockScene = {
-      add: vi.fn(),
-      remove: vi.fn()
-    };
-
-    gravitoidSystem = new GravitoidSystem(mockScene, 5);
-  });
-
-  describe('Constructor', () => {
-    it('should create gravitoid system', () => {
-      expect(gravitoidSystem).toBeDefined();
-    });
-
-    it('should add system to scene', () => {
-      expect(mockScene.add).toHaveBeenCalled();
-    });
-  });
-
-  describe('Update', () => {
-    it('should update without errors', () => {
-      expect(() => {
-        gravitoidSystem.update(16);
       }).not.toThrow();
     });
   });
