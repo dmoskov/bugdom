@@ -364,11 +364,17 @@ class AudioManager {
         if (!this.isInitialized || this.isMuted) return;
 
         const now = this.context.currentTime;
-
-        // Stop background music
         this.stopMusic();
 
-        // Descending minor chord progression
+        this._playGameOverChords(now);
+        this._playGameOverFinalNote(now);
+    }
+
+    /**
+     * Play descending minor chord progression for game over
+     * @private
+     */
+    _playGameOverChords(now) {
         const notes = [
             { freq: 392, time: 0 },      // G4
             { freq: 349.23, time: 0.3 }, // F4
@@ -406,8 +412,13 @@ class AudioManager {
             osc.start(startTime);
             osc.stop(startTime + 0.5);
         });
+    }
 
-        // Final low note
+    /**
+     * Play final low note for game over
+     * @private
+     */
+    _playGameOverFinalNote(now) {
         const finalOsc = this.context.createOscillator();
         const finalGain = this.context.createGain();
 
@@ -467,11 +478,18 @@ class AudioManager {
         if (!this.isInitialized || this.isMuted) return;
 
         const now = this.context.currentTime;
-
-        // Stop background music
         this.stopMusic();
 
-        // Triumphant ascending fanfare (major scale to triumphant chord)
+        this._playVictoryFanfare(now);
+        this._playVictoryChord(now);
+        this._playVictorySparkles(now);
+    }
+
+    /**
+     * Play ascending fanfare for victory
+     * @private
+     */
+    _playVictoryFanfare(now) {
         const fanfare = [
             { freq: 523.25, time: 0, dur: 0.2 },      // C5
             { freq: 587.33, time: 0.15, dur: 0.2 },   // D5
@@ -500,8 +518,13 @@ class AudioManager {
             osc.start(startTime);
             osc.stop(startTime + note.dur + 0.1);
         });
+    }
 
-        // Final triumphant chord (C major with octave)
+    /**
+     * Play final triumphant chord for victory
+     * @private
+     */
+    _playVictoryChord(now) {
         const chordNotes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
         const chordStart = now + 1.2;
 
@@ -515,7 +538,6 @@ class AudioManager {
             osc.connect(gain);
             gain.connect(this.sfxGain);
 
-            // Stagger slightly for richness
             const noteStart = chordStart + index * 0.03;
             gain.gain.setValueAtTime(0, noteStart);
             gain.gain.linearRampToValueAtTime(0.25, noteStart + 0.05);
@@ -525,8 +547,13 @@ class AudioManager {
             osc.start(noteStart);
             osc.stop(noteStart + 2);
         });
+    }
 
-        // Add sparkle effects
+    /**
+     * Play sparkle effects for victory
+     * @private
+     */
+    _playVictorySparkles(now) {
         for (let i = 0; i < 5; i++) {
             this.playSparkle(now + 1.3 + i * 0.2);
         }

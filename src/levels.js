@@ -10,8 +10,15 @@ export class LevelManager {
         this.enemies = [];
         this.bees = [];
         this.confetti = null;
+        this._initializePositions();
+        this.boundarySize = 50;
+    }
 
-        // Position arrays for level obstacles and collectibles
+    /**
+     * Initialize position arrays for level obstacles and collectibles
+     * @private
+     */
+    _initializePositions() {
         this.rockPositions = [
             { x: -15, z: -10, size: 2 },
             { x: 10, z: -15, size: 1.5 },
@@ -65,8 +72,6 @@ export class LevelManager {
             { x: -6, z: 25 },
             { x: 16, z: -22 }
         ];
-
-        this.boundarySize = 50;
     }
 
     // ============================================
@@ -281,7 +286,18 @@ export class LevelManager {
     createClover(x, z, isFourLeaf = false) {
         const cloverGroup = new THREE.Group();
 
-        // Clover leaves
+        this._addCloverLeaves(cloverGroup, isFourLeaf);
+        this._addCloverStem(cloverGroup);
+        this._positionClover(cloverGroup, x, z, isFourLeaf);
+
+        return cloverGroup;
+    }
+
+    /**
+     * Add leaves to clover group
+     * @private
+     */
+    _addCloverLeaves(cloverGroup, isFourLeaf) {
         const leafCount = isFourLeaf ? 4 : 3;
         const leafMaterial = new THREE.MeshStandardMaterial({
             color: 0x228b22,
@@ -302,8 +318,13 @@ export class LevelManager {
             leaf.castShadow = true;
             cloverGroup.add(leaf);
         }
+    }
 
-        // Stem
+    /**
+     * Add stem to clover group
+     * @private
+     */
+    _addCloverStem(cloverGroup) {
         const stemGeometry = new THREE.CylinderGeometry(0.03, 0.04, 0.5, 6);
         const stemMaterial = new THREE.MeshStandardMaterial({
             color: 0x1a6b1a,
@@ -313,11 +334,14 @@ export class LevelManager {
         stem.position.y = 0.25;
         stem.castShadow = true;
         cloverGroup.add(stem);
+    }
 
-        // Position the clover
+    /**
+     * Position clover and set animation properties
+     * @private
+     */
+    _positionClover(cloverGroup, x, z, isFourLeaf) {
         cloverGroup.position.set(x, 0.1, z);
-
-        // Add floating animation properties
         cloverGroup.userData = {
             collectible: true,
             collected: false,
@@ -327,8 +351,6 @@ export class LevelManager {
             floatOffset: Math.random() * Math.PI * 2,
             isFourLeaf: isFourLeaf
         };
-
-        return cloverGroup;
     }
 
     /**
@@ -412,8 +434,32 @@ export class LevelManager {
         const colors = new Float32Array(CONFETTI_COUNT * 3);
         const velocities = [];
 
-        // Confetti colors (festive)
-        const confettiColors = [
+        const confettiColors = this._getConfettiColors();
+        this._initializeConfettiParticles(CONFETTI_COUNT, positions, colors, velocities, playerPosition, confettiColors);
+
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+        const material = new THREE.PointsMaterial({
+            size: 0.4,
+            vertexColors: true,
+            transparent: true,
+            opacity: 1
+        });
+
+        this.confetti = new THREE.Points(geometry, material);
+        this.confetti.userData.velocities = velocities;
+        this.confetti.userData.startTime = performance.now();
+        this.confetti.userData.confettiCount = CONFETTI_COUNT;
+        this.scene.add(this.confetti);
+    }
+
+    /**
+     * Get confetti color palette
+     * @private
+     */
+    _getConfettiColors() {
+        return [
             new THREE.Color(0xff0000), // Red
             new THREE.Color(0x00ff00), // Green
             new THREE.Color(0x0000ff), // Blue
@@ -424,8 +470,14 @@ export class LevelManager {
             new THREE.Color(0x88ff00), // Lime
             new THREE.Color(0xffffff)  // White
         ];
+    }
 
-        for (let i = 0; i < CONFETTI_COUNT; i++) {
+    /**
+     * Initialize confetti particle positions, colors, and velocities
+     * @private
+     */
+    _initializeConfettiParticles(count, positions, colors, velocities, playerPosition, confettiColors) {
+        for (let i = 0; i < count; i++) {
             // Start from player position, spread out
             positions[i * 3] = playerPosition.x + (Math.random() - 0.5) * 10;
             positions[i * 3 + 1] = playerPosition.y + Math.random() * 20 + 5;
@@ -445,22 +497,6 @@ export class LevelManager {
             colors[i * 3 + 1] = color.g;
             colors[i * 3 + 2] = color.b;
         }
-
-        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-
-        const material = new THREE.PointsMaterial({
-            size: 0.4,
-            vertexColors: true,
-            transparent: true,
-            opacity: 1
-        });
-
-        this.confetti = new THREE.Points(geometry, material);
-        this.confetti.userData.velocities = velocities;
-        this.confetti.userData.startTime = performance.now();
-        this.confetti.userData.confettiCount = CONFETTI_COUNT;
-        this.scene.add(this.confetti);
     }
 
     /**

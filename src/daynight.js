@@ -269,10 +269,25 @@ class DayNightCycle {
     }
 
     createPointLights() {
-        // Create streetlamp-style point lights around the scene
-        // These will turn on at night and provide ambient lighting
+        const lampPositions = this._getLampPositions();
+        lampPositions.forEach(pos => {
+            const pointLight = this._createPointLight(pos);
+            this.scene.add(pointLight);
+            this.pointLights.push({
+                light: pointLight,
+                baseIntensity: 0.8,
+                targetIntensity: 0
+            });
+            this.createLampPost(pos.x, pos.z, pointLight);
+        });
+    }
 
-        const lampPositions = [
+    /**
+     * Get lamp positions for streetlamps
+     * @private
+     */
+    _getLampPositions() {
+        return [
             // Ring of streetlamps around the outer area
             { x: -35, z: -35 },
             { x: -35, z: 0 },
@@ -290,34 +305,29 @@ class DayNightCycle {
             // Center area
             { x: 0, z: 0 }
         ];
+    }
 
-        lampPositions.forEach(pos => {
-            // Create point light
-            const pointLight = new THREE.PointLight(
-                0xffaa44, // Warm orange-yellow color
-                0, // Start with 0 intensity (will fade in at night)
-                15, // Distance/range
-                2 // Decay
-            );
-            pointLight.position.set(pos.x, 3, pos.z); // Elevated position
-            pointLight.castShadow = true;
+    /**
+     * Create a single point light with shadow settings
+     * @private
+     */
+    _createPointLight(pos) {
+        const pointLight = new THREE.PointLight(
+            0xffaa44, // Warm orange-yellow color
+            0, // Start with 0 intensity (will fade in at night)
+            15, // Distance/range
+            2 // Decay
+        );
+        pointLight.position.set(pos.x, 3, pos.z);
+        pointLight.castShadow = true;
 
-            // Optimize shadow map for point lights
-            pointLight.shadow.mapSize.width = 512; // Lower resolution for performance
-            pointLight.shadow.mapSize.height = 512;
-            pointLight.shadow.camera.near = 0.5;
-            pointLight.shadow.camera.far = 20;
+        // Optimize shadow map for point lights
+        pointLight.shadow.mapSize.width = 512;
+        pointLight.shadow.mapSize.height = 512;
+        pointLight.shadow.camera.near = 0.5;
+        pointLight.shadow.camera.far = 20;
 
-            this.scene.add(pointLight);
-            this.pointLights.push({
-                light: pointLight,
-                baseIntensity: 0.8, // Maximum intensity at night
-                targetIntensity: 0 // Current target intensity
-            });
-
-            // Create visual lamp post for the light
-            this.createLampPost(pos.x, pos.z, pointLight);
-        });
+        return pointLight;
     }
 
     createLampPost(x, z, pointLight) {
@@ -459,58 +469,60 @@ class DayNightCycle {
 
     updateCelestialBodies() {
         const progress = this.cycleProgress;
+        this._updateSunPosition(progress);
+        this._updateMoonPosition(progress);
+    }
 
-        // Sun arc: rises at sunrise, peaks at midday, sets at sunset
-        // Map day phases to sun position
+    /**
+     * Update sun position and opacity based on cycle progress
+     * @private
+     */
+    _updateSunPosition(progress) {
         let sunAngle;
         let sunOpacity = 1.0;
 
         // Sun is visible from sunrise through day to sunset
         if (progress < PHASE_TIMING.SUNSET_END) {
-            // Sun rising and moving across sky
             sunAngle = Math.PI * (progress / PHASE_TIMING.SUNSET_END);
             sunOpacity = 1.0;
         } else if (progress < PHASE_TIMING.NIGHT_END) {
-            // Sun below horizon during night
-            sunAngle = Math.PI; // Below
+            sunAngle = Math.PI;
             sunOpacity = 0.0;
         } else {
-            // Sun rising again at sunrise
             const sunriseProgress = (progress - PHASE_TIMING.SUNRISE_START) / (1.0 - PHASE_TIMING.SUNRISE_START);
             sunAngle = Math.PI + Math.PI * sunriseProgress * 0.1;
             sunOpacity = sunriseProgress;
         }
 
-        // Position sun on arc
         const sunY = Math.sin(sunAngle) * CELESTIAL_DISTANCE;
         const sunZ = Math.cos(sunAngle) * CELESTIAL_DISTANCE;
         this.sun.position.set(0, sunY, sunZ);
         this.sun.material.opacity = sunOpacity;
         this.sunGlow.material.opacity = sunOpacity * 0.3;
 
-        // Update directional light to match sun position
         if (sunOpacity > 0.1) {
             this.directionalLight.position.copy(this.sun.position);
         }
+    }
 
-        // Moon arc: opposite of sun
+    /**
+     * Update moon position and opacity based on cycle progress
+     * @private
+     */
+    _updateMoonPosition(progress) {
         let moonAngle;
         let moonOpacity = 0.0;
 
-        // Moon visible during night
         if (progress >= PHASE_TIMING.SUNSET_START && progress < PHASE_TIMING.SUNRISE_END) {
             if (progress < PHASE_TIMING.NIGHT_START) {
-                // Moon rising during sunset
                 const riseProgress = (progress - PHASE_TIMING.SUNSET_START) / (PHASE_TIMING.NIGHT_START - PHASE_TIMING.SUNSET_START);
                 moonAngle = Math.PI * riseProgress * 0.5;
                 moonOpacity = riseProgress;
             } else if (progress < PHASE_TIMING.NIGHT_END) {
-                // Moon crossing night sky
                 const nightProgress = (progress - PHASE_TIMING.NIGHT_START) / (PHASE_TIMING.NIGHT_END - PHASE_TIMING.NIGHT_START);
                 moonAngle = Math.PI * 0.5 + Math.PI * 0.5 * nightProgress;
                 moonOpacity = 1.0;
             } else {
-                // Moon setting during sunrise
                 const setProgress = (progress - PHASE_TIMING.SUNRISE_START) / (1.0 - PHASE_TIMING.SUNRISE_START);
                 moonAngle = Math.PI * (1.0 - setProgress * 0.2);
                 moonOpacity = 1.0 - setProgress;
@@ -518,55 +530,59 @@ class DayNightCycle {
         }
 
         const moonY = Math.sin(moonAngle) * CELESTIAL_DISTANCE;
-        const moonZ = -Math.cos(moonAngle) * CELESTIAL_DISTANCE; // Opposite side
+        const moonZ = -Math.cos(moonAngle) * CELESTIAL_DISTANCE;
         this.moon.position.set(0, moonY, moonZ);
         this.moon.material.opacity = moonOpacity;
         this.moonGlow.material.opacity = moonOpacity * 0.2;
 
-        // Update directional light to moonlight at night
         if (this.currentPhase === PHASES.NIGHT && moonOpacity > 0.5) {
             this.directionalLight.position.copy(this.moon.position);
         }
     }
 
     updateLighting() {
-        const phase = this.currentPhase;
         const progress = this.cycleProgress;
+        const { fromPhase, toPhase, transitionFactor } = this._calculatePhaseTransition(progress);
+        this._lerpLightColors(fromPhase, toPhase, transitionFactor);
+        this._lerpLightIntensities(fromPhase, toPhase, transitionFactor);
+    }
 
-        // Get transition factor for smooth blending
+    /**
+     * Calculate phase transition information
+     * @private
+     */
+    _calculatePhaseTransition(progress) {
         let transitionFactor = 0;
-        let fromPhase = phase;
-        let toPhase = phase;
+        let fromPhase = this.currentPhase;
+        let toPhase = this.currentPhase;
 
-        // Calculate smooth transitions between phases
         if (progress >= PHASE_TIMING.DAY_END - 0.05 && progress < PHASE_TIMING.SUNSET_END) {
-            // Day to sunset transition
             fromPhase = PHASES.DAY;
             toPhase = PHASES.SUNSET;
             transitionFactor = Math.min(1, (progress - (PHASE_TIMING.DAY_END - 0.05)) / 0.15);
         } else if (progress >= PHASE_TIMING.SUNSET_END - 0.05 && progress < PHASE_TIMING.NIGHT_START + 0.05) {
-            // Sunset to night transition
             fromPhase = PHASES.SUNSET;
             toPhase = PHASES.NIGHT;
             transitionFactor = Math.min(1, (progress - (PHASE_TIMING.SUNSET_END - 0.05)) / 0.1);
         } else if (progress >= PHASE_TIMING.NIGHT_END - 0.05 && progress < PHASE_TIMING.SUNRISE_END) {
-            // Night to sunrise transition
             fromPhase = PHASES.NIGHT;
             toPhase = PHASES.SUNRISE;
             transitionFactor = Math.min(1, (progress - (PHASE_TIMING.NIGHT_END - 0.05)) / 0.2);
         } else if (progress >= 0.95 || progress < 0.05) {
-            // Sunrise to day transition (wraps around)
             fromPhase = PHASES.SUNRISE;
             toPhase = PHASES.DAY;
-            if (progress >= 0.95) {
-                transitionFactor = (progress - 0.95) / 0.05;
-            } else {
-                transitionFactor = 0.5 + progress / 0.1;
-            }
+            transitionFactor = progress >= 0.95 ? (progress - 0.95) / 0.05 : 0.5 + progress / 0.1;
             transitionFactor = Math.min(1, transitionFactor);
         }
 
-        // Lerp colors and intensities
+        return { fromPhase, toPhase, transitionFactor };
+    }
+
+    /**
+     * Interpolate light colors between phases
+     * @private
+     */
+    _lerpLightColors(fromPhase, toPhase, transitionFactor) {
         const fromAmbient = AMBIENT_LIGHT_COLORS[fromPhase];
         const toAmbient = AMBIENT_LIGHT_COLORS[toPhase];
         const fromDirectional = DIRECTIONAL_LIGHT_COLORS[fromPhase];
@@ -574,8 +590,13 @@ class DayNightCycle {
 
         this.ambientLight.color.lerpColors(fromAmbient, toAmbient, transitionFactor);
         this.directionalLight.color.lerpColors(fromDirectional, toDirectional, transitionFactor);
+    }
 
-        // Lerp intensities
+    /**
+     * Interpolate light intensities between phases
+     * @private
+     */
+    _lerpLightIntensities(fromPhase, toPhase, transitionFactor) {
         const fromIntensity = LIGHT_INTENSITIES[fromPhase];
         const toIntensity = LIGHT_INTENSITIES[toPhase];
 
@@ -637,28 +658,39 @@ class DayNightCycle {
     }
 
     updateFireflies(deltaTime) {
-        // Fireflies only visible at night
-        let fireflyOpacity = 0;
-
-        if (this.currentPhase === PHASES.NIGHT) {
-            fireflyOpacity = 0.9;
-        } else if (this.currentPhase === PHASES.SUNSET) {
-            // Fade in during sunset
-            const sunsetProgress = (this.cycleProgress - PHASE_TIMING.SUNSET_START) /
-                                   (PHASE_TIMING.SUNSET_END - PHASE_TIMING.SUNSET_START);
-            fireflyOpacity = Math.max(0, sunsetProgress - 0.5) * 1.8;
-        } else if (this.currentPhase === PHASES.SUNRISE) {
-            // Fade out during sunrise
-            const sunriseProgress = (this.cycleProgress - PHASE_TIMING.SUNRISE_START) /
-                                    (PHASE_TIMING.SUNRISE_END - PHASE_TIMING.SUNRISE_START);
-            fireflyOpacity = Math.max(0, 0.9 - sunriseProgress * 1.5);
-        }
-
+        const fireflyOpacity = this._calculateFireflyOpacity();
         this.fireflies.material.opacity = fireflyOpacity;
 
         if (fireflyOpacity <= 0) return;
 
-        // Animate fireflies
+        this._animateFireflyPositions();
+        this.fireflies.instanceMatrix.needsUpdate = true;
+    }
+
+    /**
+     * Calculate firefly opacity based on current phase
+     * @private
+     */
+    _calculateFireflyOpacity() {
+        if (this.currentPhase === PHASES.NIGHT) {
+            return 0.9;
+        } else if (this.currentPhase === PHASES.SUNSET) {
+            const sunsetProgress = (this.cycleProgress - PHASE_TIMING.SUNSET_START) /
+                                   (PHASE_TIMING.SUNSET_END - PHASE_TIMING.SUNSET_START);
+            return Math.max(0, sunsetProgress - 0.5) * 1.8;
+        } else if (this.currentPhase === PHASES.SUNRISE) {
+            const sunriseProgress = (this.cycleProgress - PHASE_TIMING.SUNRISE_START) /
+                                    (PHASE_TIMING.SUNRISE_END - PHASE_TIMING.SUNRISE_START);
+            return Math.max(0, 0.9 - sunriseProgress * 1.5);
+        }
+        return 0;
+    }
+
+    /**
+     * Animate firefly positions and blinking
+     * @private
+     */
+    _animateFireflyPositions() {
         const matrix = new THREE.Matrix4();
         const time = this.cycleTime;
 
@@ -669,8 +701,6 @@ class DayNightCycle {
             data.position.x += data.velocity.x;
             data.position.y += data.velocity.y;
             data.position.z += data.velocity.z;
-
-            // Add some sine wave movement
             data.position.y += Math.sin(time * data.blinkSpeed + data.phase) * 0.01;
 
             // Keep within bounds
@@ -682,13 +712,10 @@ class DayNightCycle {
             const blink = 0.5 + 0.5 * Math.sin(time * data.blinkSpeed + data.phase);
             const scale = data.baseScale * (0.3 + 0.7 * blink);
 
-            // Update matrix
             matrix.makeScale(scale, scale, scale);
             matrix.setPosition(data.position);
             this.fireflies.setMatrixAt(i, matrix);
         }
-
-        this.fireflies.instanceMatrix.needsUpdate = true;
     }
 
     updateStars() {
@@ -711,71 +738,76 @@ class DayNightCycle {
     }
 
     updatePointLights(deltaTime) {
-        // Point lights (streetlamps) activate at night and during sunset/sunrise transitions
-        // Calculate target intensity based on current phase and progress
-        let targetIntensity = 0;
+        const targetIntensity = this._calculateLampTargetIntensity();
 
+        this.pointLights.forEach((lampData, index) => {
+            lampData.targetIntensity = targetIntensity;
+            const newIntensity = this._calculateLampIntensity(lampData, index);
+            lampData.light.intensity = newIntensity;
+            this._updateLampEmissive(lampData, newIntensity);
+        });
+    }
+
+    /**
+     * Calculate target lamp intensity based on current phase
+     * @private
+     */
+    _calculateLampTargetIntensity() {
         if (this.currentPhase === PHASES.NIGHT) {
-            // Full brightness at night
-            targetIntensity = 1.0;
+            return 1.0;
         } else if (this.currentPhase === PHASES.SUNSET) {
-            // Fade in during sunset
             const sunsetProgress = (this.cycleProgress - PHASE_TIMING.SUNSET_START) /
                                    (PHASE_TIMING.SUNSET_END - PHASE_TIMING.SUNSET_START);
-            targetIntensity = Math.max(0, sunsetProgress - 0.2) * 1.25;
-            targetIntensity = Math.min(1, targetIntensity);
+            return Math.min(1, Math.max(0, sunsetProgress - 0.2) * 1.25);
         } else if (this.currentPhase === PHASES.SUNRISE) {
-            // Fade out during sunrise
             const sunriseProgress = (this.cycleProgress - PHASE_TIMING.SUNRISE_START) /
                                     (PHASE_TIMING.SUNRISE_END - PHASE_TIMING.SUNRISE_START);
-            targetIntensity = Math.max(0, 1.0 - sunriseProgress * 1.2);
+            return Math.max(0, 1.0 - sunriseProgress * 1.2);
+        }
+        return 0;
+    }
+
+    /**
+     * Calculate lamp intensity with lerp and flicker effects
+     * @private
+     */
+    _calculateLampIntensity(lampData, index) {
+        const lerpFactor = 0.05;
+        const currentIntensity = lampData.light.intensity;
+        let newIntensity = THREE.MathUtils.lerp(
+            currentIntensity,
+            lampData.baseIntensity * lampData.targetIntensity,
+            lerpFactor
+        );
+
+        if (newIntensity > 0.1) {
+            const time = this.cycleTime;
+            const flickerPhase = index * 1.234 + time * 0.8;
+
+            const flicker1 = Math.sin(flickerPhase * 3.7) * 0.015;
+            const flicker2 = Math.sin(flickerPhase * 7.3) * 0.008;
+            const flicker3 = Math.sin(flickerPhase * 13.1) * 0.004;
+
+            newIntensity += flicker1 + flicker2 + flicker3;
+
+            if (Math.sin(flickerPhase * 0.37) > 0.98) {
+                newIntensity *= 0.85;
+            }
         }
 
-        // Update each point light with smooth lerp transition and optional flicker
-        this.pointLights.forEach((lampData, index) => {
-            // Update target intensity
-            lampData.targetIntensity = targetIntensity;
+        return Math.max(0, Math.min(lampData.baseIntensity, newIntensity));
+    }
 
-            // Smooth lerp to target intensity (creates fade effect)
-            const lerpFactor = 0.05; // Slower lerp = smoother transition
-            const currentIntensity = lampData.light.intensity;
-            let newIntensity = THREE.MathUtils.lerp(
-                currentIntensity,
-                lampData.baseIntensity * lampData.targetIntensity,
-                lerpFactor
-            );
-
-            // Add subtle flickering effect when lamps are on (> 10% intensity)
-            if (newIntensity > 0.1) {
-                // Use time-based noise for natural flicker
-                const time = this.cycleTime;
-                const flickerPhase = index * 1.234 + time * 0.8; // Different phase per lamp
-
-                // Combine multiple sine waves for natural flicker
-                const flicker1 = Math.sin(flickerPhase * 3.7) * 0.015;
-                const flicker2 = Math.sin(flickerPhase * 7.3) * 0.008;
-                const flicker3 = Math.sin(flickerPhase * 13.1) * 0.004;
-
-                const totalFlicker = flicker1 + flicker2 + flicker3;
-                newIntensity += totalFlicker;
-
-                // Occasional stronger flicker (simulate bug or power fluctuation)
-                if (Math.sin(flickerPhase * 0.37) > 0.98) {
-                    newIntensity *= 0.85;
-                }
-            }
-
-            // Clamp intensity to valid range
-            newIntensity = Math.max(0, Math.min(lampData.baseIntensity, newIntensity));
-            lampData.light.intensity = newIntensity;
-
-            // Update emissive material on lamp mesh to match light intensity
-            if (lampData.light.userData.lampMaterial) {
-                const emissiveMaterial = lampData.light.userData.lampMaterial;
-                const emissiveIntensity = newIntensity / lampData.baseIntensity;
-                emissiveMaterial.emissiveIntensity = emissiveIntensity;
-            }
-        });
+    /**
+     * Update lamp mesh emissive material to match light intensity
+     * @private
+     */
+    _updateLampEmissive(lampData, newIntensity) {
+        if (lampData.light.userData.lampMaterial) {
+            const emissiveMaterial = lampData.light.userData.lampMaterial;
+            const emissiveIntensity = newIntensity / lampData.baseIntensity;
+            emissiveMaterial.emissiveIntensity = emissiveIntensity;
+        }
     }
 
     updateTimeDisplay() {
