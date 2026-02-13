@@ -428,9 +428,11 @@ export class UIManager {
     `;
 
     // Make entire overlay clickable
-    overlay.addEventListener('click', () => {
+    const overlayClickHandler = () => {
       location.reload();
-    });
+    };
+    overlay.addEventListener('click', overlayClickHandler);
+    this.eventListeners.push({ element: overlay, event: 'click', handler: overlayClickHandler });
 
     document.body.appendChild(overlay);
   }
@@ -568,9 +570,11 @@ export class UIManager {
     `;
 
     // Make entire overlay clickable
-    overlay.addEventListener('click', () => {
+    const overlayClickHandler = () => {
       location.reload();
-    });
+    };
+    overlay.addEventListener('click', overlayClickHandler);
+    this.eventListeners.push({ element: overlay, event: 'click', handler: overlayClickHandler });
 
     document.body.appendChild(overlay);
   }
