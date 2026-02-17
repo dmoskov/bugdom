@@ -81,11 +81,12 @@ class DayNightCycle {
         this.cycleDuration = options.cycleDuration || DEFAULT_CYCLE_DURATION;
         this.timeSpeed = options.timeSpeed || 1.0;
 
-        // Event listeners
+        // Event listeners with ID-based tracking for reliable removal
+        this._nextListenerId = 1;
         this.eventListeners = {
-            timeChange: [],
-            phaseChange: [],
-            cycleComplete: []
+            timeChange: new Map(),
+            phaseChange: new Map(),
+            cycleComplete: new Map()
         };
 
         // Cycle state
@@ -363,6 +364,12 @@ class DayNightCycle {
     }
 
     createTimeDisplay() {
+        // Remove existing display element to prevent accumulation on restart
+        const existing = document.getElementById('time-display');
+        if (existing) {
+            existing.remove();
+        }
+
         // Create time/phase display element in HTML
         const timeDisplay = document.createElement('div');
         timeDisplay.id = 'time-display';
@@ -613,36 +620,8 @@ class DayNightCycle {
     }
 
     updateEnvironment() {
-        const phase = this.currentPhase;
         const progress = this.cycleProgress;
-
-        // Similar transition logic for sky and fog
-        let transitionFactor = 0;
-        let fromPhase = phase;
-        let toPhase = phase;
-
-        if (progress >= PHASE_TIMING.DAY_END - 0.05 && progress < PHASE_TIMING.SUNSET_END) {
-            fromPhase = PHASES.DAY;
-            toPhase = PHASES.SUNSET;
-            transitionFactor = Math.min(1, (progress - (PHASE_TIMING.DAY_END - 0.05)) / 0.15);
-        } else if (progress >= PHASE_TIMING.SUNSET_END - 0.05 && progress < PHASE_TIMING.NIGHT_START + 0.05) {
-            fromPhase = PHASES.SUNSET;
-            toPhase = PHASES.NIGHT;
-            transitionFactor = Math.min(1, (progress - (PHASE_TIMING.SUNSET_END - 0.05)) / 0.1);
-        } else if (progress >= PHASE_TIMING.NIGHT_END - 0.05 && progress < PHASE_TIMING.SUNRISE_END) {
-            fromPhase = PHASES.NIGHT;
-            toPhase = PHASES.SUNRISE;
-            transitionFactor = Math.min(1, (progress - (PHASE_TIMING.NIGHT_END - 0.05)) / 0.2);
-        } else if (progress >= 0.95 || progress < 0.05) {
-            fromPhase = PHASES.SUNRISE;
-            toPhase = PHASES.DAY;
-            if (progress >= 0.95) {
-                transitionFactor = (progress - 0.95) / 0.05;
-            } else {
-                transitionFactor = 0.5 + progress / 0.1;
-            }
-            transitionFactor = Math.min(1, transitionFactor);
-        }
+        const { fromPhase, toPhase, transitionFactor } = this._calculatePhaseTransition(progress);
 
         // Update sky color
         const fromSky = SKY_COLORS[fromPhase];
@@ -703,10 +682,20 @@ class DayNightCycle {
             data.position.z += data.velocity.z;
             data.position.y += Math.sin(time * data.blinkSpeed + data.phase) * 0.01;
 
-            // Keep within bounds
-            if (Math.abs(data.position.x) > FIREFLY_AREA / 2) data.velocity.x *= -1;
-            if (data.position.y < 0.5 || data.position.y > 4) data.velocity.y *= -1;
-            if (Math.abs(data.position.z) > FIREFLY_AREA / 2) data.velocity.z *= -1;
+            // Keep within bounds - clamp position to prevent overshoot
+            const halfArea = FIREFLY_AREA / 2;
+            if (Math.abs(data.position.x) > halfArea) {
+                data.velocity.x *= -1;
+                data.position.x = Math.max(-halfArea, Math.min(halfArea, data.position.x));
+            }
+            if (data.position.y < 0.5 || data.position.y > 4) {
+                data.velocity.y *= -1;
+                data.position.y = Math.max(0.5, Math.min(4, data.position.y));
+            }
+            if (Math.abs(data.position.z) > halfArea) {
+                data.velocity.z *= -1;
+                data.position.z = Math.max(-halfArea, Math.min(halfArea, data.position.z));
+            }
 
             // Blink effect (scale)
             const blink = 0.5 + 0.5 * Math.sin(time * data.blinkSpeed + data.phase);
@@ -874,36 +863,76 @@ class DayNightCycle {
     // EVENT SYSTEM
     // ============================================
 
-    // Add event listener
+    // Add event listener - returns an ID for reliable removal
     on(eventName, callback) {
         if (this.eventListeners[eventName]) {
-            this.eventListeners[eventName].push(callback);
+            const id = this._nextListenerId++;
+            this.eventListeners[eventName].set(id, callback);
+            return id;
         } else {
             console.warn(`Unknown event type: ${eventName}`);
+            return -1;
         }
     }
 
-    // Remove event listener
-    off(eventName, callback) {
-        if (this.eventListeners[eventName]) {
-            const index = this.eventListeners[eventName].indexOf(callback);
-            if (index > -1) {
-                this.eventListeners[eventName].splice(index, 1);
+    // Remove event listener by ID or callback reference
+    off(eventName, idOrCallback) {
+        const listeners = this.eventListeners[eventName];
+        if (!listeners) return;
+
+        if (typeof idOrCallback === 'number') {
+            listeners.delete(idOrCallback);
+        } else {
+            // Fallback: remove by callback reference
+            for (const [id, cb] of listeners) {
+                if (cb === idOrCallback) {
+                    listeners.delete(id);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Remove all listeners for an event, or all events if no name given
+    offAll(eventName) {
+        if (eventName) {
+            if (this.eventListeners[eventName]) {
+                this.eventListeners[eventName].clear();
+            }
+        } else {
+            for (const key of Object.keys(this.eventListeners)) {
+                this.eventListeners[key].clear();
             }
         }
     }
 
     // Emit event
     emit(eventName, data) {
-        if (this.eventListeners[eventName]) {
-            this.eventListeners[eventName].forEach(callback => {
+        const listeners = this.eventListeners[eventName];
+        if (listeners) {
+            for (const callback of listeners.values()) {
                 try {
                     callback(data);
                 } catch (error) {
                     console.error(`Error in ${eventName} listener:`, error);
                 }
-            });
+            }
         }
+    }
+
+    // ============================================
+    // CLEANUP
+    // ============================================
+
+    dispose() {
+        // Remove DOM element
+        if (this.timeDisplay && this.timeDisplay.parentNode) {
+            this.timeDisplay.parentNode.removeChild(this.timeDisplay);
+            this.timeDisplay = null;
+        }
+
+        // Clear all event listeners
+        this.offAll();
     }
 
     // ============================================
