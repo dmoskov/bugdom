@@ -10,8 +10,22 @@ export class LevelManager {
         this.enemies = [];
         this.bees = [];
         this.confetti = null;
+        this._pendingTimeouts = [];
+        this._pendingAnimationFrames = [];
+        this._currentLevel = null;
         this._initializePositions();
         this.boundarySize = 50;
+    }
+
+    /**
+     * Cancel all pending timeouts and animation frames.
+     * Call this on level change to prevent stale callbacks from firing.
+     */
+    cancelPendingTimers() {
+        this._pendingTimeouts.forEach(id => clearTimeout(id));
+        this._pendingTimeouts = [];
+        this._pendingAnimationFrames.forEach(id => cancelAnimationFrame(id));
+        this._pendingAnimationFrames = [];
     }
 
     /**
@@ -414,7 +428,8 @@ export class LevelManager {
             // Spin
             clover.rotation.y += 0.2;
 
-            requestAnimationFrame(animateStep);
+            const rafId = requestAnimationFrame(animateStep);
+            this._pendingAnimationFrames.push(rafId);
         };
 
         animateStep();
@@ -556,6 +571,9 @@ export class LevelManager {
      * Apply level-specific environmental effects and mechanics
      */
     applyLevelEnvironment(level, ambientLight, directionalLight, scene, enemyManager, collectiblesManager) {
+        this.cancelPendingTimers();
+        this._currentLevel = level;
+
         if (level === 3) {
             this.applyLevel3Environment(ambientLight, directionalLight, scene, enemyManager);
         } else if (level === 4) {
@@ -577,12 +595,15 @@ export class LevelManager {
         }
         // Spawn additional spiders for level 3
         const spidersToAdd = 2;
+        const levelAtCall = 3;
         for (let i = 0; i < spidersToAdd; i++) {
-            setTimeout(() => {
+            const id = setTimeout(() => {
+                if (this._currentLevel !== levelAtCall) return;
                 const x = (Math.random() - 0.5) * 80;
                 const z = (Math.random() - 0.5) * 80;
                 enemyManager.spawnSpider(x, 8, z);
             }, i * 1000);
+            this._pendingTimeouts.push(id);
         }
     }
 
@@ -597,22 +618,27 @@ export class LevelManager {
         }
         // Spawn slugs for level 4
         const slugsToAdd = 3;
+        const levelAtCall = 4;
         for (let i = 0; i < slugsToAdd; i++) {
-            setTimeout(() => {
+            const id = setTimeout(() => {
+                if (this._currentLevel !== levelAtCall) return;
                 const x = (Math.random() - 0.5) * 80;
                 const z = (Math.random() - 0.5) * 80;
                 enemyManager.spawnSlug(x, 0.5, z);
             }, i * 1200);
+            this._pendingTimeouts.push(id);
         }
         // Add extra power-ups for compensation
         const extraPowerUps = 2;
         for (let i = 0; i < extraPowerUps; i++) {
-            setTimeout(() => {
+            const id = setTimeout(() => {
+                if (this._currentLevel !== levelAtCall) return;
                 const x = (Math.random() - 0.5) * 70;
                 const z = (Math.random() - 0.5) * 70;
                 const powerUpType = Math.random() < 0.5 ? 'speed' : 'invincibility';
                 collectiblesManager.spawnMushroom(new THREE.Vector3(x, 1, z), powerUpType);
             }, i * 1500 + 500);
+            this._pendingTimeouts.push(id);
         }
     }
 
