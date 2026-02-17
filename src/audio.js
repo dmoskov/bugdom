@@ -12,6 +12,8 @@ class AudioManager {
         this.isMuted = false;
         this.musicPlaying = false;
         this.musicNodes = [];
+        this.musicLoopTimeoutId = null;
+        this._gameOverActive = false;
 
         // Volume levels (0-1)
         this.masterVolume = 0.7;
@@ -199,6 +201,13 @@ class AudioManager {
         noiseGain.gain.setValueAtTime(volume, startTime);
 
         noise.start(startTime);
+        noise.stop(startTime + duration);
+
+        // Disconnect nodes after playback finishes to prevent leak
+        noise.onended = () => {
+            noise.disconnect();
+            noiseGain.disconnect();
+        };
     }
 
     // Combo multiplier - escalating excitement (higher pitch for higher combos)
@@ -362,12 +371,20 @@ class AudioManager {
     // Game over - sad descending tone
     playGameOver() {
         if (!this.isInitialized || this.isMuted) return;
+        // Prevent stacking from rapid game-over events
+        if (this._gameOverActive) return;
+        this._gameOverActive = true;
 
         const now = this.context.currentTime;
         this.stopMusic();
 
         this._playGameOverChords(now);
         this._playGameOverFinalNote(now);
+
+        // Reset guard after the full sequence completes (~3.1s)
+        setTimeout(() => {
+            this._gameOverActive = false;
+        }, 3200);
     }
 
     /**
@@ -411,6 +428,14 @@ class AudioManager {
             vibrato.stop(startTime + 0.5);
             osc.start(startTime);
             osc.stop(startTime + 0.5);
+
+            // Disconnect vibrato and main nodes after playback to prevent accumulation
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+                vibrato.disconnect();
+                vibratoGain.disconnect();
+            };
         });
     }
 
@@ -583,8 +608,9 @@ class AudioManager {
         this.playMusicMelody(now);
         this.playMusicBass(now);
 
-        // Schedule next loop
-        setTimeout(() => {
+        // Schedule next loop (track timeout for cleanup)
+        this.musicLoopTimeoutId = setTimeout(() => {
+            this.musicLoopTimeoutId = null;
             if (this.musicPlaying) {
                 this.playMusicLoop();
             }
@@ -714,6 +740,10 @@ class AudioManager {
     // Stop background music
     stopMusic() {
         this.musicPlaying = false;
+        if (this.musicLoopTimeoutId !== null) {
+            clearTimeout(this.musicLoopTimeoutId);
+            this.musicLoopTimeoutId = null;
+        }
     }
 
     // ============================================
