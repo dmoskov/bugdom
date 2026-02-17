@@ -183,6 +183,9 @@ export class Spider {
 
     // State: DROP - Descending from above on web thread
     stateDrop(deltaTime) {
+        // Guard: skip if spider has been removed from scene
+        if (!this.mesh.parent) return;
+
         // Accelerate downward with slowing
         this.dropSpeed += 3.0 * deltaTime;
         this.mesh.position.y -= this.dropSpeed * deltaTime;
@@ -225,15 +228,16 @@ export class Spider {
 
         // Check attack range
         const distance = this.mesh.position.distanceTo(player.position);
+        const isWebbed = player.userData && player.userData.isWebbed;
 
         // Web attack if in range and cooldown ready
-        if (distance < 8 && this.webCooldown <= 0 && !player.userData.isWebbed) {
+        if (distance < 8 && this.webCooldown <= 0 && !isWebbed) {
             this.state = 'SPIT';
             this.webCooldown = 3.0; // 3 second cooldown
             this.stateTimer = 0.5; // Attack animation duration
         }
         // Jump attack if player is already webbed
-        else if (distance < 6 && player.userData.isWebbed) {
+        else if (distance < 6 && isWebbed) {
             this.state = 'JUMP';
             this.stateTimer = 0;
         }
@@ -336,6 +340,8 @@ export class Spider {
         if (!legs) return;
 
         legs.forEach((leg, i) => {
+            if (!leg || !leg.userData) return;
+
             const phase = this.legPhase + (i * Math.PI / 4);
             const side = leg.userData.side;
 
@@ -613,6 +619,12 @@ export class EnemyManager {
             for (let i = this.scene.userData.projectiles.length - 1; i >= 0; i--) {
                 const proj = this.scene.userData.projectiles[i];
 
+                // Remove stale refs (projectile already removed from scene)
+                if (!proj || !proj.parent) {
+                    this.scene.userData.projectiles.splice(i, 1);
+                    continue;
+                }
+
                 if (proj.userData.velocity) {
                     proj.position.x += proj.userData.velocity.x * deltaTime;
                     proj.position.y += proj.userData.velocity.y * deltaTime;
@@ -624,7 +636,7 @@ export class EnemyManager {
                 // Check collision with player
                 if (proj.userData.isWeb && player) {
                     const dist = proj.position.distanceTo(player.position);
-                    if (dist < 1.0 && !player.userData.isWebbed) {
+                    if (dist < 1.0 && !(player.userData && player.userData.isWebbed)) {
                         // Web hit!
                         this.webPlayer(player);
                         this.scene.remove(proj);
@@ -645,6 +657,13 @@ export class EnemyManager {
         if (this.scene.userData.slimeTrails) {
             for (let i = this.scene.userData.slimeTrails.length - 1; i >= 0; i--) {
                 const slime = this.scene.userData.slimeTrails[i];
+
+                // Remove stale refs
+                if (!slime || !slime.parent) {
+                    this.scene.userData.slimeTrails.splice(i, 1);
+                    continue;
+                }
+
                 slime.userData.lifetime -= deltaTime;
 
                 // Fade out
@@ -660,6 +679,7 @@ export class EnemyManager {
     }
 
     webPlayer(player) {
+        if (!player.userData) player.userData = {};
         player.userData.isWebbed = true;
         player.userData.webTimer = 2.5; // 2.5 seconds paralysis
 
@@ -707,5 +727,17 @@ export class EnemyManager {
         this.enemies = [];
         this.spiders = [];
         this.slugs = [];
+
+        // Clean up projectiles
+        if (this.scene.userData.projectiles) {
+            this.scene.userData.projectiles.forEach(proj => this.scene.remove(proj));
+            this.scene.userData.projectiles = [];
+        }
+
+        // Clean up slime trails
+        if (this.scene.userData.slimeTrails) {
+            this.scene.userData.slimeTrails.forEach(slime => this.scene.remove(slime));
+            this.scene.userData.slimeTrails = [];
+        }
     }
 }
