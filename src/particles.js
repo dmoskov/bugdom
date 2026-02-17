@@ -212,7 +212,7 @@ export class ParticleEffectsManager {
 
             group.addParticle({
                 position: position.clone(),
-                velocity: new THREE.Vector3(vx, Math.abs(vy), vz),
+                velocity: new THREE.Vector3(vx, vy, vz),
                 color: new THREE.Color(color),
                 size: 0.12 + Math.random() * 0.18,
                 lifetime: 0.6 + Math.random() * 0.5,
@@ -358,20 +358,31 @@ export class ParticleEffectsManager {
         }
     }
 
+    // Reusable objects to avoid per-frame allocations (GC pressure)
+    _matrix = new THREE.Matrix4();
+    _quaternion = new THREE.Quaternion();
+    _scale = new THREE.Vector3();
+    _rotQuat = new THREE.Quaternion();
+    _zAxis = new THREE.Vector3(0, 0, 1);
+    _color = new THREE.Color();
+    _hiddenPos = new THREE.Vector3(0, -1000, 0);
+
     // Update instanced mesh with particle data
     updateInstancedMesh(group, camera) {
         const mesh = group.mesh;
-        const matrix = new THREE.Matrix4();
-        const quaternion = new THREE.Quaternion();
-        const scale = new THREE.Vector3();
+        const matrix = this._matrix;
+        const quaternion = this._quaternion;
+        const scale = this._scale;
+        const rotQuat = this._rotQuat;
+        const zAxis = this._zAxis;
+        const color = this._color;
 
         group.particles.forEach((p, i) => {
             // Billboard particles to face camera
             quaternion.copy(camera.quaternion);
 
             // Apply rotation
-            const rotQuat = new THREE.Quaternion();
-            rotQuat.setFromAxisAngle(new THREE.Vector3(0, 0, 1), p.rotation);
+            rotQuat.setFromAxisAngle(zAxis, p.rotation);
             quaternion.multiply(rotQuat);
 
             // Scale based on size and lifetime
@@ -384,7 +395,6 @@ export class ParticleEffectsManager {
             mesh.setMatrixAt(i, matrix);
 
             // Set color and opacity
-            const color = new THREE.Color();
             color.copy(p.color);
             mesh.setColorAt(i, color);
         });
@@ -392,7 +402,7 @@ export class ParticleEffectsManager {
         // Hide unused instances
         for (let i = group.particles.length; i < group.maxParticles; i++) {
             scale.set(0, 0, 0);
-            matrix.compose(new THREE.Vector3(0, -1000, 0), quaternion, scale);
+            matrix.compose(this._hiddenPos, quaternion, scale);
             mesh.setMatrixAt(i, matrix);
         }
 
