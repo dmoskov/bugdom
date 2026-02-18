@@ -562,7 +562,7 @@ export class CollectiblesManager {
         return buddy;
     }
 
-    checkCollisions(playerPosition, collectionRadius) {
+    checkCollisions(playerPosition, collectionRadius, player) {
         for (let i = this.collectibles.length - 1; i >= 0; i--) {
             const collectible = this.collectibles[i];
             if (!collectible.mesh) continue;
@@ -570,14 +570,14 @@ export class CollectiblesManager {
             const distance = playerPosition.distanceTo(collectible.mesh.position);
 
             if (distance < collectionRadius) {
-                // Get collectible info before removing
+                // Get collectible info before collecting
                 const collectedInfo = {
-                    type: collectible.constructor.name.toLowerCase(),
-                    variant: collectible.type || collectible.color || collectible.value || null,
+                    type: collectible.type,
+                    variant: null,
                     position: collectible.mesh.position.clone()
                 };
 
-                // Map constructor names to expected types
+                // Map types and extract the correct variant property
                 if (collectible instanceof MushroomPowerUp) {
                     collectedInfo.type = 'mushroom';
                     collectedInfo.variant = collectible.mushroomType;
@@ -594,6 +594,10 @@ export class CollectiblesManager {
                     collectedInfo.variant = collectible.berryType;
                 }
 
+                // Apply power-up effects via onCollect, then remove from scene
+                if (player) {
+                    collectible.onCollect(player);
+                }
                 collectible.remove();
                 this.collectibles.splice(i, 1);
                 return collectedInfo;
