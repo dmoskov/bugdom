@@ -102,34 +102,46 @@ function initAudio() {
  * Start game
  */
 function startGame() {
-    gameState.setGameStartTime(performance.now());
+    // Save pre-start state for rollback on partial initialization failure
+    const prevDayNightCycle = dayNightCycle;
+    const prevGameLoopDayNight = gameLoop.dayNightCycle;
 
-    // Apply difficulty settings
-    const difficulty = gameState.getSelectedDifficulty();
-    const diffSettings = gameState.getDifficultyPreset(difficulty);
-    player.applyDifficultyModifiers(diffSettings);
-    gameState.setMaxHealth(gameState.getBaseMaxHealth() * diffSettings.playerHealthMultiplier);
-    gameState.setPlayerHealth(gameState.getMaxHealth());
+    try {
+        gameState.setGameStartTime(performance.now());
 
-    // Initialize audio
-    initAudio();
+        // Apply difficulty settings
+        const difficulty = gameState.getSelectedDifficulty();
+        const diffSettings = gameState.getDifficultyPreset(difficulty);
+        player.applyDifficultyModifiers(diffSettings);
+        gameState.setMaxHealth(gameState.getBaseMaxHealth() * diffSettings.playerHealthMultiplier);
+        gameState.setPlayerHealth(gameState.getMaxHealth());
 
-    // Initialize day/night cycle
-    dayNightCycle = new DayNightCycle(scene, ambientLight, directionalLight);
-    gameLoop.dayNightCycle = dayNightCycle;
+        // Initialize audio
+        initAudio();
 
-    // Spawn initial enemies
-    const enemyCount = Math.floor(3 * diffSettings.enemyCountMultiplier);
-    levelManager.initEnemies(enemyCount);
+        // Initialize day/night cycle
+        dayNightCycle = new DayNightCycle(scene, ambientLight, directionalLight);
+        gameLoop.dayNightCycle = dayNightCycle;
 
-    // Update UI
-    uiManager.updateCloverCountDisplay();
-    uiManager.updateLevelDisplay();
-    uiManager.updateLivesDisplay();
-    uiManager.updateHealthDisplay();
+        // Spawn initial enemies
+        const enemyCount = Math.floor(3 * diffSettings.enemyCountMultiplier);
+        levelManager.initEnemies(enemyCount);
 
-    // Show welcome message
-    setTimeout(() => uiManager.showWelcomeMessage(), 1000);
+        // Update UI
+        uiManager.updateCloverCountDisplay();
+        uiManager.updateLevelDisplay();
+        uiManager.updateLivesDisplay();
+        uiManager.updateHealthDisplay();
+
+        // Show welcome message
+        setTimeout(() => uiManager.showWelcomeMessage(), 1000);
+    } catch (error) {
+        // Rollback to prevent partially initialized game state
+        console.error('startGame failed, rolling back:', error);
+        dayNightCycle = prevDayNightCycle;
+        gameLoop.dayNightCycle = prevGameLoopDayNight;
+        gameState.setGameStartTime(0);
+    }
 }
 
 /**
@@ -149,8 +161,10 @@ function pauseGame() {
  * Resume game
  */
 function resumeGame() {
+    // Capture resume time atomically before any state transitions
+    const resumeTime = performance.now();
+    const pauseDuration = resumeTime - lastPauseTime;
     gameState.setGameState(gameState.GameState.PLAYING);
-    const pauseDuration = performance.now() - lastPauseTime;
     gameState.addPausedTime(pauseDuration);
     audioManager.resume();
     audioManager.playResume();
@@ -219,6 +233,9 @@ const cleanupWindowResize = setupWindowResize(renderer, cameraController);
  * Called when game is being destroyed or reset
  */
 function cleanupGame() {
+    // Cancel any pending level timers to prevent stale callbacks
+    levelManager.cancelPendingTimers();
+
     // Cleanup UI event listeners
     uiManager.cleanup();
 

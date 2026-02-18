@@ -89,8 +89,11 @@ export class GameLoop {
             }
         }
 
-        // Check for victory
-        if (this.gameState.getCloversCollected() >= this.gameState.getTotalClovers() && !this.gameState.getGameWon()) {
+        // Check for victory — snapshot state once for atomic check
+        const collectedNow = this.gameState.getCloversCollected();
+        const totalNeeded = this.gameState.getTotalClovers();
+        const alreadyWon = this.gameState.getGameWon();
+        if (collectedNow >= totalNeeded && !alreadyWon) {
             this.victory();
         }
 
@@ -160,8 +163,10 @@ export class GameLoop {
         // Play hit sound
         this.audioManager.playHit();
 
-        // Check game over
-        if (this.gameState.getPlayerHealth() <= 0 && this.gameState.getExtraLives() > 0) {
+        // Check game over — snapshot health and lives once for atomic decision
+        const currentHealth = this.gameState.getPlayerHealth();
+        const currentLives = this.gameState.getExtraLives();
+        if (currentHealth <= 0 && currentLives > 0) {
             // Lost a life, respawn
             this.gameState.useExtraLife();
             this.gameState.setPlayerHealth(this.gameState.getMaxHealth());
@@ -170,7 +175,7 @@ export class GameLoop {
 
             // Reset player position
             this.player.setPosition(0, 0, 0);
-        } else if (this.gameState.getPlayerHealth() <= 0 && this.gameState.getExtraLives() <= 0) {
+        } else if (currentHealth <= 0 && currentLives <= 0) {
             // Game over
             this.gameOver();
         }
@@ -299,7 +304,10 @@ export class GameLoop {
      * Check all collision types
      */
     checkCollisions(currentTime) {
-        if (this.gameState.getGameWon() || this.gameState.getGameState() === this.gameState.GameState.GAME_OVER) {
+        // Snapshot state once to avoid inconsistent reads between checks
+        const gameWon = this.gameState.getGameWon();
+        const currentState = this.gameState.getGameState();
+        if (gameWon || currentState === this.gameState.GameState.GAME_OVER) {
             return;
         }
 
