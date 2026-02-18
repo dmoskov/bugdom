@@ -48,8 +48,8 @@ export class InputManager {
   // Get unified movement input (keyboard + touch)
   getMovementInput() {
     return {
-      forward: this.keys['w'] || this.keys['arrowup'] || this.touchControls?.up || false,
-      backward: this.keys['s'] || this.keys['arrowdown'] || this.touchControls?.down || false,
+      forward: this.keys['w'] || this.keys['arrowup'] || this.touchControls?.forward || false,
+      backward: this.keys['s'] || this.keys['arrowdown'] || this.touchControls?.backward || false,
       left: this.keys['a'] || this.keys['arrowleft'] || this.touchControls?.left || false,
       right: this.keys['d'] || this.keys['arrowright'] || this.touchControls?.right || false
     };
@@ -57,6 +57,9 @@ export class InputManager {
 
   // Enable/disable input (for pause states)
   enableInput() {
+    // Remove first to prevent duplicate handlers from repeated pause/unpause cycles
+    window.removeEventListener('keydown', this.handleKeyDown);
+    window.removeEventListener('keyup', this.handleKeyUp);
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keyup', this.handleKeyUp);
   }
