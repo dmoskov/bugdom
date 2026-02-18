@@ -12,9 +12,9 @@ describe('GameStateManager', () => {
   let gameState;
 
   beforeEach(() => {
-    // Mock localStorage
+    // Mock localStorage (getItem returns null by default, like real localStorage)
     global.localStorage = {
-      getItem: vi.fn(),
+      getItem: vi.fn().mockReturnValue(null),
       setItem: vi.fn(),
       removeItem: vi.fn(),
       clear: vi.fn()
@@ -102,6 +102,15 @@ describe('GameStateManager', () => {
       expect(global.localStorage.getItem).toHaveBeenCalledWith('bugdom_highscore');
     });
 
+    it('should return success with localStorage source when loaded', () => {
+      global.localStorage.getItem.mockReturnValue('1000');
+      const newGameState = new GameStateManager();
+      // Call again to check return value (constructor already called it)
+      const result = newGameState.loadHighScore();
+
+      expect(result).toEqual({ success: true, source: 'localStorage' });
+    });
+
     it('should handle missing high score in localStorage', () => {
       global.localStorage.getItem.mockReturnValue(null);
       const newGameState = new GameStateManager();
@@ -109,36 +118,53 @@ describe('GameStateManager', () => {
       expect(newGameState.highScore).toBe(0);
     });
 
-    it('should handle invalid high score in localStorage', () => {
+    it('should return success with default source when no saved data', () => {
+      global.localStorage.getItem.mockReturnValue(null);
+      const newGameState = new GameStateManager();
+      const result = newGameState.loadHighScore();
+
+      expect(result).toEqual({ success: true, source: 'default' });
+    });
+
+    it('should handle invalid high score in localStorage and report corruption', () => {
       global.localStorage.getItem.mockReturnValue('invalid');
       const newGameState = new GameStateManager();
 
       expect(newGameState.highScore).toBe(0);
+      // Call again to verify return value
+      const result = newGameState.loadHighScore();
+      expect(result).toEqual({ success: false, error: 'corrupt_data' });
     });
 
-    it('should handle localStorage errors gracefully', () => {
+    it('should handle localStorage errors gracefully and return error info', () => {
       global.localStorage.getItem.mockImplementation(() => {
         throw new Error('Storage error');
       });
 
       const newGameState = new GameStateManager();
       expect(newGameState.highScore).toBe(0);
+
+      const result = newGameState.loadHighScore();
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Storage error');
     });
 
-    it('should save high score to localStorage', () => {
+    it('should save high score to localStorage and return true', () => {
       gameState.highScore = 5000;
-      gameState.saveHighScore();
+      const result = gameState.saveHighScore();
 
+      expect(result).toBe(true);
       expect(global.localStorage.setItem).toHaveBeenCalledWith('bugdom_highscore', '5000');
     });
 
-    it('should handle save errors gracefully', () => {
+    it('should return false on save errors', () => {
       global.localStorage.setItem.mockImplementation(() => {
         throw new Error('Storage error');
       });
 
       gameState.highScore = 5000;
-      expect(() => gameState.saveHighScore()).not.toThrow();
+      const result = gameState.saveHighScore();
+      expect(result).toBe(false);
     });
 
     it('should update high score if current score is higher', () => {
@@ -151,6 +177,21 @@ describe('GameStateManager', () => {
       expect(gameState.highScore).toBe(1500);
       expect(gameState.isNewHighScore).toBe(true);
       expect(global.localStorage.setItem).toHaveBeenCalled();
+    });
+
+    it('should revert high score if save fails', () => {
+      global.localStorage.setItem.mockImplementation(() => {
+        throw new Error('Quota exceeded');
+      });
+
+      gameState.score = 1500;
+      gameState.highScore = 1000;
+
+      const updated = gameState.checkAndUpdateHighScore();
+
+      expect(updated).toBe(false);
+      expect(gameState.highScore).toBe(1000); // reverted
+      expect(gameState.isNewHighScore).toBe(false); // not set on failure
     });
 
     it('should not update high score if current score is lower', () => {
@@ -321,6 +362,26 @@ describe('GameStateManager', () => {
       expect(settings.enemySpeed).toBe(0.06 * 0.7); // base * easy multiplier
       expect(settings.maxEnemies).toBe(Math.ceil(5 * 0.7)); // 4 enemies
       expect(settings.spawnRate).toBe(12000 * 1.5); // slower spawn
+    });
+
+    it('should fall back to level 1 for invalid level', () => {
+      gameState.setSelectedDifficulty('medium');
+      const settings = gameState.getDifficultySettings(99);
+
+      // Should return level 1 settings with medium multiplier
+      expect(settings.enemySpeed).toBe(0.04); // level 1 base * 1.0
+      expect(settings.maxEnemies).toBe(3);
+      expect(settings.spawnRate).toBe(0);
+    });
+
+    it('should fall back to medium for invalid difficulty preset', () => {
+      gameState.selectedDifficulty = 'nonexistent';
+      const settings = gameState.getDifficultySettings(1);
+
+      // Should reset to medium and return valid settings
+      expect(gameState.selectedDifficulty).toBe('medium');
+      expect(settings.enemySpeed).toBe(0.04);
+      expect(settings.maxEnemies).toBe(3);
     });
   });
 

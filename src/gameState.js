@@ -188,29 +188,47 @@ export class GameStateManager {
   loadHighScore() {
     try {
       const saved = localStorage.getItem('bugdom_highscore');
-      if (saved !== null) {
-        this.highScore = parseInt(saved, 10);
-        if (isNaN(this.highScore)) this.highScore = 0;
+      if (saved === null) {
+        this.highScore = 0;
+        return { success: true, source: 'default' };
       }
+      const parsed = parseInt(saved, 10);
+      if (isNaN(parsed)) {
+        console.warn('Corrupted high score data in localStorage:', saved);
+        this.highScore = 0;
+        return { success: false, error: 'corrupt_data' };
+      }
+      this.highScore = parsed;
+      return { success: true, source: 'localStorage' };
     } catch (e) {
       console.warn('Could not load high score:', e);
       this.highScore = 0;
+      return { success: false, error: e.message };
     }
   }
 
   saveHighScore() {
     try {
       localStorage.setItem('bugdom_highscore', this.highScore.toString());
+      return true;
     } catch (e) {
       console.warn('Could not save high score:', e);
+      return false;
     }
   }
 
   checkAndUpdateHighScore() {
     if (this.score > this.highScore) {
+      const previousHighScore = this.highScore;
       this.highScore = this.score;
+      const saved = this.saveHighScore();
+      if (!saved) {
+        // Revert in-memory state to prevent divergence from persisted state
+        this.highScore = previousHighScore;
+        console.warn('High score update reverted: save to localStorage failed');
+        return false;
+      }
       this.isNewHighScore = true;
-      this.saveHighScore();
       return true;
     }
     return false;
@@ -314,7 +332,16 @@ export class GameStateManager {
 
   getDifficultySettings(level) {
     const baseSettings = this.BASE_DIFFICULTY_SETTINGS[level];
+    if (!baseSettings) {
+      console.warn(`Invalid level ${level}, falling back to level 1`);
+      return this.getDifficultySettings(1);
+    }
     const preset = this.DIFFICULTY_PRESETS[this.selectedDifficulty];
+    if (!preset) {
+      console.warn(`Invalid difficulty "${this.selectedDifficulty}", falling back to medium`);
+      this.selectedDifficulty = 'medium';
+      return this.getDifficultySettings(level);
+    }
 
     return {
       enemySpeed: baseSettings.enemySpeed * preset.enemySpeedMultiplier,
