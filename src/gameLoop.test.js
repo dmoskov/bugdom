@@ -112,6 +112,15 @@ describe('GameLoop', () => {
       expect(gameLoop.animationFrameId).toBeNull();
     });
 
+    it('should initialize level-up guard flag', () => {
+      expect(gameLoop._levelUpInProgress).toBe(false);
+    });
+
+    it('should initialize difficulty settings cache as null', () => {
+      expect(gameLoop._cachedDifficultySettings).toBeNull();
+      expect(gameLoop._cachedDifficultyLevel).toBeNull();
+    });
+
     it('should store clovers reference', () => {
       expect(gameLoop.clovers).toBe(mockDependencies.clovers);
     });
@@ -223,6 +232,39 @@ describe('GameLoop', () => {
       expect(mockDependencies.levelManager.spawnEnemy).toHaveBeenCalled();
     });
 
+    it('should not level up when _levelUpInProgress guard is set', () => {
+      mockDependencies.gameState.getCloversCollected.mockReturnValue(3);
+      mockDependencies.gameState.getCurrentLevel.mockReturnValue(1);
+
+      gameLoop._levelUpInProgress = true;
+
+      gameLoop.onCloverCollect(mockClover, false);
+
+      expect(mockDependencies.gameState.setCurrentLevel).not.toHaveBeenCalled();
+      expect(mockDependencies.uiManager.showLevelUpPopup).not.toHaveBeenCalled();
+    });
+
+    it('should reset _levelUpInProgress after level-up completes', () => {
+      mockDependencies.gameState.getCloversCollected.mockReturnValue(3);
+      mockDependencies.gameState.getCurrentLevel.mockReturnValue(1);
+
+      gameLoop.onCloverCollect(mockClover, false);
+
+      expect(gameLoop._levelUpInProgress).toBe(false);
+    });
+
+    it('should invalidate difficulty cache on level-up', () => {
+      gameLoop._cachedDifficultySettings = { enemySpeed: 1 };
+      gameLoop._cachedDifficultyLevel = 1;
+
+      mockDependencies.gameState.getCloversCollected.mockReturnValue(3);
+      mockDependencies.gameState.getCurrentLevel.mockReturnValue(1);
+
+      gameLoop.onCloverCollect(mockClover, false);
+
+      expect(gameLoop._cachedDifficultySettings).toBeNull();
+    });
+
     it('should not level up beyond max level', () => {
       mockDependencies.gameState.getCloversCollected.mockReturnValue(33);
       mockDependencies.gameState.getCurrentLevel.mockReturnValue(10);
@@ -295,6 +337,84 @@ describe('GameLoop', () => {
       gameLoop.victory();
 
       expect(mockDependencies.gameState.setGameState).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateManagers - dayNightCycle null safety', () => {
+    beforeEach(() => {
+      // Add missing mock methods needed by updateManagers
+      mockDependencies.gameState.checkPowerUpExpirations = vi.fn();
+      mockDependencies.gameState.checkComboExpiration = vi.fn();
+      mockDependencies.gameState.getDifficultySettings = vi.fn().mockReturnValue({
+        enemySpeed: 1, maxEnemies: 2, spawnRate: 0.5
+      });
+      mockDependencies.levelManager.updateEnemies = vi.fn();
+      mockDependencies.levelManager.updateBees = vi.fn();
+      mockDependencies.levelManager.checkBeeSpawn = vi.fn();
+      mockDependencies.levelManager.confetti = null;
+      mockDependencies.player.getRotation = vi.fn().mockReturnValue(0);
+    });
+
+    it('should not throw when dayNightCycle is null', () => {
+      gameLoop.dayNightCycle = null;
+
+      expect(() => {
+        gameLoop.updateManagers(0.016, 1000);
+      }).not.toThrow();
+    });
+
+    it('should call dayNightCycle.update when it exists', () => {
+      gameLoop.updateManagers(0.016, 1000);
+
+      expect(mockDependencies.dayNightCycle.update).toHaveBeenCalledWith(0.016);
+    });
+  });
+
+  describe('updateManagers - difficulty settings caching', () => {
+    beforeEach(() => {
+      mockDependencies.gameState.checkPowerUpExpirations = vi.fn();
+      mockDependencies.gameState.checkComboExpiration = vi.fn();
+      mockDependencies.gameState.getDifficultySettings = vi.fn().mockReturnValue({
+        enemySpeed: 1, maxEnemies: 2, spawnRate: 0.5
+      });
+      mockDependencies.levelManager.updateEnemies = vi.fn();
+      mockDependencies.levelManager.updateBees = vi.fn();
+      mockDependencies.levelManager.checkBeeSpawn = vi.fn();
+      mockDependencies.levelManager.confetti = null;
+      mockDependencies.player.getRotation = vi.fn().mockReturnValue(0);
+    });
+
+    it('should compute difficulty settings on first call', () => {
+      gameLoop.updateManagers(0.016, 1000);
+
+      expect(mockDependencies.gameState.getDifficultySettings).toHaveBeenCalledTimes(1);
+      expect(gameLoop._cachedDifficultySettings).toEqual({
+        enemySpeed: 1, maxEnemies: 2, spawnRate: 0.5
+      });
+      expect(gameLoop._cachedDifficultyLevel).toBe(1);
+    });
+
+    it('should reuse cached settings on subsequent calls at same level', () => {
+      gameLoop.updateManagers(0.016, 1000);
+      gameLoop.updateManagers(0.016, 2000);
+      gameLoop.updateManagers(0.016, 3000);
+
+      expect(mockDependencies.gameState.getDifficultySettings).toHaveBeenCalledTimes(1);
+    });
+
+    it('should recompute settings when level changes', () => {
+      gameLoop.updateManagers(0.016, 1000);
+      expect(mockDependencies.gameState.getDifficultySettings).toHaveBeenCalledTimes(1);
+
+      // Simulate level change
+      mockDependencies.gameState.getCurrentLevel.mockReturnValue(2);
+      mockDependencies.gameState.getDifficultySettings.mockReturnValue({
+        enemySpeed: 2, maxEnemies: 3, spawnRate: 1.0
+      });
+
+      gameLoop.updateManagers(0.016, 2000);
+      expect(mockDependencies.gameState.getDifficultySettings).toHaveBeenCalledTimes(2);
+      expect(gameLoop._cachedDifficultyLevel).toBe(2);
     });
   });
 
