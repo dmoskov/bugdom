@@ -30,6 +30,13 @@ export class GameLoop {
         this.lastTime = 0;
         this.animationTime = 0;
         this.animationFrameId = null;
+
+        // Guard flag to prevent double level-up from rapid clover collection
+        this._levelUpInProgress = false;
+
+        // Cache difficulty settings to avoid recomputing every frame
+        this._cachedDifficultySettings = null;
+        this._cachedDifficultyLevel = null;
     }
 
     // ============================================
@@ -66,16 +73,19 @@ export class GameLoop {
         // Animate clover collection (remove from scene)
         clover.visible = false;
 
-        // Check for level up (every 3 clovers)
-        if (this.gameState.getCloversCollected() % this.gameState.CLOVERS_PER_LEVEL === 0) {
+        // Check for level up (every 3 clovers) - guard prevents double level-up from rapid collection
+        if (!this._levelUpInProgress && this.gameState.getCloversCollected() % this.gameState.CLOVERS_PER_LEVEL === 0) {
             const newLevel = Math.floor(this.gameState.getCloversCollected() / this.gameState.CLOVERS_PER_LEVEL) + 1;
             if (newLevel > this.gameState.getCurrentLevel() && newLevel <= this.gameState.getMaxLevel()) {
+                this._levelUpInProgress = true;
                 this.gameState.setCurrentLevel(newLevel);
+                this._cachedDifficultySettings = null; // Invalidate cache on level change
                 this.uiManager.showLevelUpPopup(newLevel);
                 this.audioManager.playLevelUp();
 
                 // Spawn new enemy for level
                 this.levelManager.spawnEnemy();
+                this._levelUpInProgress = false;
             }
         }
 
@@ -342,9 +352,13 @@ export class GameLoop {
         this.gameState.checkPowerUpExpirations(currentTime);
         this.gameState.checkComboExpiration(currentTime);
 
-        // Update enemies
-        const diffSettings = this.gameState.getDifficultySettings(this.gameState.getCurrentLevel());
-        this.levelManager.updateEnemies(this.player.getPosition(), deltaTime, currentTime, diffSettings);
+        // Update enemies (use cached difficulty settings to avoid recomputing every frame)
+        const currentLevel = this.gameState.getCurrentLevel();
+        if (!this._cachedDifficultySettings || this._cachedDifficultyLevel !== currentLevel) {
+            this._cachedDifficultySettings = this.gameState.getDifficultySettings(currentLevel);
+            this._cachedDifficultyLevel = currentLevel;
+        }
+        this.levelManager.updateEnemies(this.player.getPosition(), deltaTime, currentTime, this._cachedDifficultySettings);
         this.levelManager.updateBees(this.player.getPosition(), deltaTime, currentTime);
         this.levelManager.checkBeeSpawn(this.gameState.getCurrentLevel(), currentTime);
 
