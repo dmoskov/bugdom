@@ -33,15 +33,20 @@ describe('UIManager', () => {
       getTotalClovers: vi.fn(() => 30),
       getCombo: vi.fn(() => 3),
       getComboTime: vi.fn(() => 2),
+      getComboMultiplier: vi.fn(() => 1),
       getLives: vi.fn(() => 3),
+      getExtraLives: vi.fn(() => 0),
       getCurrentLevel: vi.fn(() => 1),
+      getSelectedDifficulty: vi.fn(() => 'medium'),
+      getDifficultyPreset: vi.fn(() => ({ name: 'Medium', description: 'Normal difficulty' })),
+      getIsNewHighScore: vi.fn(() => false),
       getEnemiesDefeated: vi.fn(() => 5),
       getTimePlayed: vi.fn(() => 180)
     };
 
     // Mock DOM elements
     mockElements = {
-      score: { textContent: '' },
+      score: { textContent: '', appendChild: vi.fn() },
       'high-score': { textContent: '' },
       health: { style: { width: '' }, textContent: '' },
       'health-text': { textContent: '' },
@@ -70,8 +75,8 @@ describe('UIManager', () => {
         }))
       },
       'pause-overlay': { style: { display: 'none' }, classList: { add: vi.fn(), remove: vi.fn() } },
-      'game-over': { style: { display: 'none' }, querySelector: vi.fn(() => ({ textContent: '' })), remove: vi.fn(), addEventListener: vi.fn() },
-      'victory-screen': { style: { display: 'none' }, querySelector: vi.fn(() => ({ textContent: '' })), remove: vi.fn(), addEventListener: vi.fn() },
+      'game-over': { style: { display: 'none' }, querySelector: vi.fn(() => ({ textContent: '' })), remove: vi.fn(), addEventListener: vi.fn(), appendChild: vi.fn() },
+      'victory-screen': { style: { display: 'none' }, querySelector: vi.fn(() => ({ textContent: '' })), remove: vi.fn(), addEventListener: vi.fn(), appendChild: vi.fn() },
       'power-up-message': { textContent: '', style: { display: 'none' } },
       'level-up-popup': { textContent: '', style: { display: 'none' } },
       'combo-popup': { textContent: '', style: { display: 'none' } }
@@ -98,13 +103,14 @@ describe('UIManager', () => {
 
   describe('Score Display', () => {
     it('should update score display using gameState', () => {
-      mockElements.score = { textContent: '' };
+      mockElements.score = { textContent: '', appendChild: vi.fn() };
       document.getElementById = vi.fn(() => mockElements.score);
 
       uiManager.updateScoreDisplay();
 
       expect(mockGameState.getScore).toHaveBeenCalled();
-      expect(mockElements.score.textContent).toContain('1000');
+      // With high score > 0, DOM nodes are appended via appendChild
+      expect(mockElements.score.appendChild).toHaveBeenCalled();
     });
 
     it('should handle missing score element gracefully', () => {
@@ -233,34 +239,30 @@ describe('UIManager', () => {
 
   describe('Game State Displays', () => {
     it('should show game over screen with score', () => {
-      const gameOverScreen = {
-        style: { display: 'none' },
-        querySelector: vi.fn(() => ({ textContent: '' }))
-      };
+      // Mock existing overlay with remove() for cleanup
+      const existingOverlay = { remove: vi.fn() };
       document.getElementById = vi.fn((id) => {
-        if (id === 'game-over') return gameOverScreen;
+        if (id === 'game-over') return existingOverlay;
         return mockElements[id] || null;
       });
 
-      uiManager.showGameOverScreen();
+      uiManager.showGameOverScreen('1:23', { hasBees: false });
 
-      expect(gameOverScreen.style.display).toBe('flex');
+      expect(existingOverlay.remove).toHaveBeenCalled();
       expect(mockGameState.getScore).toHaveBeenCalled();
     });
 
     it('should show victory screen with score', () => {
-      const victoryScreen = {
-        style: { display: 'none' },
-        querySelector: vi.fn(() => ({ textContent: '' }))
-      };
+      // Mock existing overlay with remove() for cleanup
+      const existingOverlay = { remove: vi.fn() };
       document.getElementById = vi.fn((id) => {
-        if (id === 'victory-screen') return victoryScreen;
+        if (id === 'victory-screen') return existingOverlay;
         return mockElements[id] || null;
       });
 
-      uiManager.showVictoryScreen();
+      uiManager.showVictoryScreen('2:30');
 
-      expect(victoryScreen.style.display).toBe('flex');
+      expect(existingOverlay.remove).toHaveBeenCalled();
       expect(mockGameState.getScore).toHaveBeenCalled();
     });
 
@@ -268,7 +270,7 @@ describe('UIManager', () => {
       document.getElementById = vi.fn(() => null);
 
       expect(() => {
-        uiManager.showGameOverScreen();
+        uiManager.showGameOverScreen('0:00', { hasBees: false });
       }).not.toThrow();
     });
   });

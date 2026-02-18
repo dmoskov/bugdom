@@ -20,6 +20,12 @@ export class UIManager {
     // Track event listeners for cleanup
     this.eventListeners = [];
 
+    // Track injected style elements for cleanup
+    this._injectedStyles = [];
+
+    // Inject overlay styles once
+    this._injectOverlayStyles();
+
     this.initMinimap();
   }
 
@@ -155,7 +161,14 @@ export class UIManager {
       const score = this.gameState.getScore();
       const highScore = this.gameState.getHighScore();
       if (highScore > 0) {
-        scoreElement.innerHTML = `Score: ${score}<br><span style="font-size: 14px; color: #ffcc00;">Best: ${highScore}</span>`;
+        scoreElement.textContent = '';
+        const scoreText = document.createTextNode(`Score: ${score}`);
+        scoreElement.appendChild(scoreText);
+        scoreElement.appendChild(document.createElement('br'));
+        const bestSpan = document.createElement('span');
+        bestSpan.style.cssText = 'font-size: 14px; color: #ffcc00;';
+        bestSpan.textContent = `Best: ${highScore}`;
+        scoreElement.appendChild(bestSpan);
       } else {
         scoreElement.textContent = `Score: ${score}`;
       }
@@ -251,10 +264,17 @@ export class UIManager {
   showComboPopup(multiplier, points) {
     const popup = document.createElement('div');
     popup.className = 'combo-popup';
-    popup.innerHTML = `
-      <div class="combo-multiplier">x${multiplier} COMBO!</div>
-      <div class="combo-points">+${points}</div>
-    `;
+
+    const multiplierDiv = document.createElement('div');
+    multiplierDiv.className = 'combo-multiplier';
+    multiplierDiv.textContent = `x${multiplier} COMBO!`;
+    popup.appendChild(multiplierDiv);
+
+    const pointsDiv = document.createElement('div');
+    pointsDiv.className = 'combo-points';
+    pointsDiv.textContent = `+${points}`;
+    popup.appendChild(pointsDiv);
+
     popup.style.cssText = `
       position: fixed;
       top: 50%;
@@ -286,10 +306,15 @@ export class UIManager {
       levelMessage = 'Maximum difficulty reached!';
     }
 
-    popup.innerHTML = `
-      <div class="levelup-text">LEVEL ${level}!</div>
-      <div class="levelup-warning">${levelMessage}</div>
-    `;
+    const levelText = document.createElement('div');
+    levelText.className = 'levelup-text';
+    levelText.textContent = `LEVEL ${level}!`;
+    popup.appendChild(levelText);
+
+    const warningText = document.createElement('div');
+    warningText.className = 'levelup-warning';
+    warningText.textContent = levelMessage;
+    popup.appendChild(warningText);
     popup.style.cssText = `
       position: fixed;
       top: 30%;
@@ -333,76 +358,9 @@ export class UIManager {
   // ============================================
 
   showVictoryScreen(timeString, stats = {}) {
-    this.addVictoryScreenStyles();
+    this._removeExistingOverlay('victory-screen');
     const overlay = this.createVictoryOverlay(timeString);
     document.body.appendChild(overlay);
-  }
-
-  addVictoryScreenStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      @keyframes bounce {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-      }
-      @keyframes sparkle {
-        0%, 100% { text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold; }
-        50% { text-shadow: 0 0 20px gold, 0 0 40px gold, 0 0 60px gold; }
-      }
-      @keyframes tapHintPulse {
-        0%, 100% { opacity: 0.6; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.05); }
-      }
-      #victory-screen h1 {
-        animation: bounce 1s ease-in-out infinite, sparkle 1.5s ease-in-out infinite;
-      }
-      #victory-screen .stat {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 15px 30px;
-        border-radius: 10px;
-        margin: 10px;
-        min-width: 200px;
-        text-align: center;
-      }
-      #victory-screen .stat-label {
-        font-size: 14px;
-        color: #aaa;
-        margin-bottom: 5px;
-      }
-      #victory-screen .stat-value {
-        font-size: 32px;
-        font-weight: bold;
-        color: #4a9d2e;
-      }
-      #victory-screen button {
-        padding: 15px 40px;
-        font-size: 20px;
-        background: linear-gradient(135deg, #4a9d2e, #228b22);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        margin: 10px;
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        min-height: 48px;
-      }
-      #victory-screen button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
-      }
-      #victory-screen .tap-hint {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 16px;
-        margin-top: 20px;
-        animation: tapHintPulse 2s ease-in-out infinite;
-      }
-    `;
-    document.head.appendChild(style);
   }
 
   createVictoryOverlay(timeString) {
@@ -426,7 +384,7 @@ export class UIManager {
       cursor: pointer;
     `;
 
-    overlay.innerHTML = this.getVictoryHTML(timeString);
+    this._buildVictoryContent(overlay, timeString);
 
     // Make entire overlay clickable
     const overlayClickHandler = () => {
@@ -438,7 +396,7 @@ export class UIManager {
     return overlay;
   }
 
-  getVictoryHTML(timeString) {
+  _buildVictoryContent(overlay, timeString) {
     const score = this.gameState.getScore();
     const highScore = this.gameState.getHighScore();
     const cloversCollected = this.gameState.getCloversCollected();
@@ -447,116 +405,62 @@ export class UIManager {
     const difficultyPreset = this.gameState.getDifficultyPreset();
     const isNewHighScore = this.gameState.getIsNewHighScore();
 
-    const highScoreMessage = isNewHighScore
-      ? '<p style="font-size: 28px; color: #ffcc00; margin: 10px 0; animation: sparkle 1.5s ease-in-out infinite;">🎉 NEW HIGH SCORE! 🎉</p>'
-      : '';
+    const h1 = document.createElement('h1');
+    h1.style.cssText = 'font-size: 64px; color: gold; margin-bottom: 20px;';
+    h1.textContent = 'LEVEL COMPLETE!';
+    overlay.appendChild(h1);
 
-    return `
-      <h1 style="font-size: 64px; color: gold; margin-bottom: 20px;">LEVEL COMPLETE!</h1>
-      ${highScoreMessage}
-      <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 30px;">
-        <div class="stat">
-          <div class="stat-label">TIME</div>
-          <div class="stat-value">${timeString}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">SCORE</div>
-          <div class="stat-value">${score}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">HIGH SCORE</div>
-          <div class="stat-value" style="color: #ffcc00;">${highScore}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">CLOVERS</div>
-          <div class="stat-value">${cloversCollected}/${totalClovers}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">DIFFICULTY</div>
-          <div class="stat-value" style="color: #9933ff;">${difficultyPreset.name} - Level ${currentLevel}</div>
-        </div>
-      </div>
-      <div>
-        <button onclick="location.reload()">Play Again</button>
-      </div>
-      <p class="tap-hint">(Tap anywhere to restart)</p>
-    `;
+    if (isNewHighScore) {
+      const highScoreMsg = document.createElement('p');
+      highScoreMsg.style.cssText = 'font-size: 28px; color: #ffcc00; margin: 10px 0; animation: sparkle 1.5s ease-in-out infinite;';
+      highScoreMsg.textContent = '\u{1F389} NEW HIGH SCORE! \u{1F389}';
+      overlay.appendChild(highScoreMsg);
+    }
+
+    const statsContainer = document.createElement('div');
+    statsContainer.style.cssText = 'display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 30px;';
+
+    const stats = [
+      { label: 'TIME', value: timeString },
+      { label: 'SCORE', value: String(score) },
+      { label: 'HIGH SCORE', value: String(highScore), color: '#ffcc00' },
+      { label: 'CLOVERS', value: `${cloversCollected}/${totalClovers}` },
+      { label: 'DIFFICULTY', value: `${difficultyPreset.name} - Level ${currentLevel}`, color: '#9933ff' },
+    ];
+
+    stats.forEach(({ label, value, color }) => {
+      const stat = document.createElement('div');
+      stat.className = 'stat';
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'stat-label';
+      labelDiv.textContent = label;
+      const valueDiv = document.createElement('div');
+      valueDiv.className = 'stat-value';
+      valueDiv.textContent = value;
+      if (color) valueDiv.style.color = color;
+      stat.appendChild(labelDiv);
+      stat.appendChild(valueDiv);
+      statsContainer.appendChild(stat);
+    });
+    overlay.appendChild(statsContainer);
+
+    const btnContainer = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.textContent = 'Play Again';
+    btn.addEventListener('click', () => location.reload());
+    btnContainer.appendChild(btn);
+    overlay.appendChild(btnContainer);
+
+    const hint = document.createElement('p');
+    hint.className = 'tap-hint';
+    hint.textContent = '(Tap anywhere to restart)';
+    overlay.appendChild(hint);
   }
 
   showGameOverScreen(timeString, stats = {}) {
-    this.addGameOverScreenStyles();
+    this._removeExistingOverlay('game-over');
     const overlay = this.createGameOverOverlay(timeString, stats);
     document.body.appendChild(overlay);
-  }
-
-  addGameOverScreenStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes fadeInGameOver {
-        from { opacity: 0; transform: scale(0.9); }
-        to { opacity: 1; transform: scale(1); }
-      }
-      @keyframes shakeTitle {
-        0%, 100% { transform: translateX(0); }
-        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-        20%, 40%, 60%, 80% { transform: translateX(5px); }
-      }
-      #game-over {
-        animation: fadeInGameOver 0.5s ease-out;
-      }
-      #game-over h1 {
-        animation: shakeTitle 0.8s ease-in-out;
-        text-shadow: 0 0 20px rgba(200, 0, 0, 0.5), 0 0 40px rgba(200, 0, 0, 0.3);
-      }
-      #game-over .stat-box {
-        background: rgba(255, 255, 255, 0.1);
-        padding: 15px 30px;
-        border-radius: 10px;
-        margin: 10px;
-        min-width: 150px;
-        text-align: center;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-      }
-      #game-over .stat-label {
-        font-size: 14px;
-        color: #aaa;
-        margin-bottom: 5px;
-      }
-      #game-over .stat-value {
-        font-size: 28px;
-        font-weight: bold;
-        color: #ff6666;
-      }
-      @keyframes tapHintPulse {
-        0%, 100% { opacity: 0.6; transform: scale(1); }
-        50% { opacity: 1; transform: scale(1.05); }
-      }
-      #game-over button {
-        padding: 18px 50px;
-        font-size: 22px;
-        background: linear-gradient(135deg, #cc3333, #aa2222);
-        color: white;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        margin-top: 20px;
-        transition: transform 0.2s, box-shadow 0.2s;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-        min-height: 48px;
-      }
-      #game-over button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 20px rgba(200, 0, 0, 0.4);
-        background: linear-gradient(135deg, #dd4444, #bb3333);
-      }
-      #game-over .tap-hint {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 16px;
-        margin-top: 20px;
-        animation: tapHintPulse 2s ease-in-out infinite;
-      }
-    `;
-    document.head.appendChild(style);
   }
 
   createGameOverOverlay(timeString, stats) {
@@ -579,7 +483,7 @@ export class UIManager {
       cursor: pointer;
     `;
 
-    overlay.innerHTML = this.getGameOverHTML(timeString, stats);
+    this._buildGameOverContent(overlay, timeString, stats);
 
     // Make entire overlay clickable
     const overlayClickHandler = () => {
@@ -591,7 +495,7 @@ export class UIManager {
     return overlay;
   }
 
-  getGameOverHTML(timeString, stats) {
+  _buildGameOverContent(overlay, timeString, stats) {
     const score = this.gameState.getScore();
     const highScore = this.gameState.getHighScore();
     const cloversCollected = this.gameState.getCloversCollected();
@@ -600,39 +504,60 @@ export class UIManager {
     const isNewHighScore = this.gameState.getIsNewHighScore();
 
     const enemyMsg = stats.hasBees ? 'The bugs got you!' : 'The ants got you!';
-    const highScoreMessage = isNewHighScore
-      ? '<p style="font-size: 24px; color: #ffcc00; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>'
-      : '';
 
-    return `
-      <h1 style="font-size: 72px; color: #cc2222; margin-bottom: 10px;">GAME OVER</h1>
-      <p style="font-size: 18px; color: #888; margin-bottom: 10px;">${enemyMsg}</p>
-      ${highScoreMessage}
-      <div style="display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;">
-        <div class="stat-box">
-          <div class="stat-label">FINAL SCORE</div>
-          <div class="stat-value">${score}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">HIGH SCORE</div>
-          <div class="stat-value" style="color: #ffcc00;">${highScore}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">TIME</div>
-          <div class="stat-value">${timeString}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">CLOVERS</div>
-          <div class="stat-value">${cloversCollected}/${totalClovers}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">LEVEL</div>
-          <div class="stat-value" style="color: #9933ff;">${currentLevel}</div>
-        </div>
-      </div>
-      <button onclick="location.reload()">Try Again</button>
-      <p class="tap-hint">(Tap anywhere to try again)</p>
-    `;
+    const h1 = document.createElement('h1');
+    h1.style.cssText = 'font-size: 72px; color: #cc2222; margin-bottom: 10px;';
+    h1.textContent = 'GAME OVER';
+    overlay.appendChild(h1);
+
+    const enemyP = document.createElement('p');
+    enemyP.style.cssText = 'font-size: 18px; color: #888; margin-bottom: 10px;';
+    enemyP.textContent = enemyMsg;
+    overlay.appendChild(enemyP);
+
+    if (isNewHighScore) {
+      const highScoreMsg = document.createElement('p');
+      highScoreMsg.style.cssText = 'font-size: 24px; color: #ffcc00; margin: 10px 0;';
+      highScoreMsg.textContent = '\u{1F389} NEW HIGH SCORE! \u{1F389}';
+      overlay.appendChild(highScoreMsg);
+    }
+
+    const statsContainer = document.createElement('div');
+    statsContainer.style.cssText = 'display: flex; flex-wrap: wrap; justify-content: center; margin-bottom: 20px;';
+
+    const statItems = [
+      { label: 'FINAL SCORE', value: String(score) },
+      { label: 'HIGH SCORE', value: String(highScore), color: '#ffcc00' },
+      { label: 'TIME', value: timeString },
+      { label: 'CLOVERS', value: `${cloversCollected}/${totalClovers}` },
+      { label: 'LEVEL', value: String(currentLevel), color: '#9933ff' },
+    ];
+
+    statItems.forEach(({ label, value, color }) => {
+      const statBox = document.createElement('div');
+      statBox.className = 'stat-box';
+      const labelDiv = document.createElement('div');
+      labelDiv.className = 'stat-label';
+      labelDiv.textContent = label;
+      const valueDiv = document.createElement('div');
+      valueDiv.className = 'stat-value';
+      valueDiv.textContent = value;
+      if (color) valueDiv.style.color = color;
+      statBox.appendChild(labelDiv);
+      statBox.appendChild(valueDiv);
+      statsContainer.appendChild(statBox);
+    });
+    overlay.appendChild(statsContainer);
+
+    const btn = document.createElement('button');
+    btn.textContent = 'Try Again';
+    btn.addEventListener('click', () => location.reload());
+    overlay.appendChild(btn);
+
+    const hint = document.createElement('p');
+    hint.className = 'tap-hint';
+    hint.textContent = '(Tap anywhere to try again)';
+    overlay.appendChild(hint);
   }
 
   showPauseOverlay() {
@@ -810,6 +735,149 @@ export class UIManager {
   }
 
   // ============================================
+  // STYLE INJECTION (once, in constructor)
+  // ============================================
+
+  _injectOverlayStyles() {
+    const style = document.createElement('style');
+    style.setAttribute('data-ui-manager', 'overlay-styles');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes bounce {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      @keyframes sparkle {
+        0%, 100% { text-shadow: 0 0 10px gold, 0 0 20px gold, 0 0 30px gold; }
+        50% { text-shadow: 0 0 20px gold, 0 0 40px gold, 0 0 60px gold; }
+      }
+      @keyframes tapHintPulse {
+        0%, 100% { opacity: 0.6; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+      }
+      @keyframes fadeInGameOver {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes shakeTitle {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+      }
+      #victory-screen h1 {
+        animation: bounce 1s ease-in-out infinite, sparkle 1.5s ease-in-out infinite;
+      }
+      #victory-screen .stat {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px 30px;
+        border-radius: 10px;
+        margin: 10px;
+        min-width: 200px;
+        text-align: center;
+      }
+      #victory-screen .stat-label {
+        font-size: 14px;
+        color: #aaa;
+        margin-bottom: 5px;
+      }
+      #victory-screen .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #4a9d2e;
+      }
+      #victory-screen button {
+        padding: 15px 40px;
+        font-size: 20px;
+        background: linear-gradient(135deg, #4a9d2e, #228b22);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        margin: 10px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        min-height: 48px;
+      }
+      #victory-screen button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      }
+      #victory-screen .tap-hint {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 16px;
+        margin-top: 20px;
+        animation: tapHintPulse 2s ease-in-out infinite;
+      }
+      #game-over {
+        animation: fadeInGameOver 0.5s ease-out;
+      }
+      #game-over h1 {
+        animation: shakeTitle 0.8s ease-in-out;
+        text-shadow: 0 0 20px rgba(200, 0, 0, 0.5), 0 0 40px rgba(200, 0, 0, 0.3);
+      }
+      #game-over .stat-box {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 15px 30px;
+        border-radius: 10px;
+        margin: 10px;
+        min-width: 150px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      #game-over .stat-label {
+        font-size: 14px;
+        color: #aaa;
+        margin-bottom: 5px;
+      }
+      #game-over .stat-value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #ff6666;
+      }
+      #game-over button {
+        padding: 18px 50px;
+        font-size: 22px;
+        background: linear-gradient(135deg, #cc3333, #aa2222);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        margin-top: 20px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        min-height: 48px;
+      }
+      #game-over button:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 20px rgba(200, 0, 0, 0.4);
+        background: linear-gradient(135deg, #dd4444, #bb3333);
+      }
+      #game-over .tap-hint {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 16px;
+        margin-top: 20px;
+        animation: tapHintPulse 2s ease-in-out infinite;
+      }
+    `;
+    document.head.appendChild(style);
+    this._injectedStyles.push(style);
+  }
+
+  /**
+   * Remove an existing overlay by ID before creating a new one
+   * @private
+   */
+  _removeExistingOverlay(id) {
+    const existing = document.getElementById(id);
+    if (existing) {
+      existing.remove();
+    }
+  }
+
+  // ============================================
   // CLEANUP
   // ============================================
 
@@ -819,6 +887,10 @@ export class UIManager {
       element.removeEventListener(event, handler);
     });
     this.eventListeners = [];
+
+    // Remove injected style elements
+    this._injectedStyles.forEach(style => style.remove());
+    this._injectedStyles = [];
 
     // Remove any dynamically created overlays
     const victoryScreen = document.getElementById('victory-screen');
