@@ -62,6 +62,19 @@ export class Collectible {
     remove() {
         if (this.mesh) {
             this.scene.remove(this.mesh);
+            // Dispose geometry and materials on all child meshes to free GPU memory
+            this.mesh.traverse(child => {
+                if (child.isMesh) {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                }
+            });
         }
     }
 }

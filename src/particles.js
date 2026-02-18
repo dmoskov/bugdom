@@ -97,11 +97,6 @@ export class ParticleEffectsManager {
         this.scene = scene;
         this.particleGroups = [];
         this.maxGroups = 50;
-
-        // Shared geometries for performance
-        this.sparkGeometry = new THREE.PlaneGeometry(0.1, 0.1);
-        this.dustGeometry = new THREE.PlaneGeometry(0.3, 0.3);
-        this.splashGeometry = new THREE.PlaneGeometry(0.2, 0.2);
     }
 
     // Create falling sparks effect
@@ -248,8 +243,9 @@ export class ParticleEffectsManager {
 
     // Create spark meshes for rendering
     createSparkMeshes(group) {
+        const geometry = new THREE.PlaneGeometry(0.1, 0.1);
         const instancedMesh = new THREE.InstancedMesh(
-            this.sparkGeometry,
+            geometry,
             new THREE.MeshBasicMaterial({
                 color: 0xffffff,
                 transparent: true,
@@ -265,8 +261,9 @@ export class ParticleEffectsManager {
 
     // Create dust meshes
     createDustMeshes(group) {
+        const geometry = new THREE.PlaneGeometry(0.3, 0.3);
         const instancedMesh = new THREE.InstancedMesh(
-            this.dustGeometry,
+            geometry,
             new THREE.MeshBasicMaterial({
                 color: 0xffffff,
                 transparent: true,
@@ -282,8 +279,9 @@ export class ParticleEffectsManager {
 
     // Create splash meshes
     createSplashMeshes(group) {
+        const geometry = new THREE.PlaneGeometry(0.2, 0.2);
         const instancedMesh = new THREE.InstancedMesh(
-            this.splashGeometry,
+            geometry,
             new THREE.MeshBasicMaterial({
                 color: 0xffffff,
                 transparent: true,
@@ -446,9 +444,11 @@ export class RippleManager {
     // Create a ground ripple effect
     createRipple(position, maxRadius = 3, duration = 1.5, color = 0xffffff) {
         if (this.ripples.length >= this.maxRipples) {
-            // Remove oldest ripple
+            // Remove oldest ripple and dispose its GPU resources
             const oldest = this.ripples.shift();
             this.scene.remove(oldest.mesh);
+            oldest.mesh.geometry.dispose();
+            oldest.mesh.material.dispose();
         }
 
         const rippleGeometry = new THREE.RingGeometry(0.1, 0.2, 32);
