@@ -11,8 +11,8 @@ import { InputManager } from './input.js';
 // Mock touch controls module
 vi.mock('./touch.js', () => ({
   getTouchControls: vi.fn(() => ({
-    up: false,
-    down: false,
+    forward: false,
+    backward: false,
     left: false,
     right: false,
     enabled: false
@@ -160,10 +160,10 @@ describe('InputManager', () => {
     });
 
     it('should combine keyboard and touch input', () => {
-      // Mock touch controls with up pressed
+      // Mock touch controls with forward pressed
       inputManager.touchControls = {
-        up: true,
-        down: false,
+        forward: true,
+        backward: false,
         left: false,
         right: false
       };

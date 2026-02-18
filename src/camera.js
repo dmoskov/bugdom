@@ -11,9 +11,6 @@ export class CameraController {
 
     // Bind methods
     this.handleResize = this.handleResize.bind(this);
-
-    // Setup resize listener
-    window.addEventListener('resize', this.handleResize);
   }
 
   /**
@@ -79,7 +76,7 @@ export class CameraController {
    * Cleanup event listeners
    */
   cleanup() {
-    window.removeEventListener('resize', this.handleResize);
+    // Resize listener is managed by setupWindowResize() in sceneSetup.js
   }
 }
 

@@ -58,11 +58,11 @@ describe('Camera Controller', () => {
       expect(cameraController.cameraLookOffset.z).toBe(0);
     });
 
-    it('should add resize event listener', () => {
+    it('should not add its own resize event listener (managed by setupWindowResize)', () => {
       const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
       const newController = new CameraController(camera);
 
-      expect(addEventListenerSpy).toHaveBeenCalledWith('resize', expect.any(Function));
+      expect(addEventListenerSpy).not.toHaveBeenCalledWith('resize', expect.any(Function));
 
       newController.cleanup();
       addEventListenerSpy.mockRestore();
@@ -223,12 +223,12 @@ describe('Camera Controller', () => {
   });
 
   describe('Cleanup', () => {
-    it('should remove resize event listener', () => {
+    it('should not remove resize listener (managed by setupWindowResize)', () => {
       const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
 
       cameraController.cleanup();
 
-      expect(removeEventListenerSpy).toHaveBeenCalledWith('resize', cameraController.handleResize);
+      expect(removeEventListenerSpy).not.toHaveBeenCalledWith('resize', cameraController.handleResize);
 
       removeEventListenerSpy.mockRestore();
     });
