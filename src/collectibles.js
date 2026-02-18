@@ -580,7 +580,7 @@ export class CollectiblesManager {
                 // Map constructor names to expected types
                 if (collectible instanceof MushroomPowerUp) {
                     collectedInfo.type = 'mushroom';
-                    collectedInfo.variant = collectible.type;
+                    collectedInfo.variant = collectible.mushroomType;
                 } else if (collectible instanceof BuddyBug) {
                     collectedInfo.type = 'buddybug';
                 } else if (collectible instanceof Coin) {
@@ -588,10 +588,10 @@ export class CollectiblesManager {
                     collectedInfo.variant = collectible.value;
                 } else if (collectible instanceof Key) {
                     collectedInfo.type = 'key';
-                    collectedInfo.variant = collectible.color;
+                    collectedInfo.variant = collectible.keyColor;
                 } else if (collectible instanceof Berry) {
                     collectedInfo.type = 'berry';
-                    collectedInfo.variant = collectible.type;
+                    collectedInfo.variant = collectible.berryType;
                 }
 
                 collectible.remove();
