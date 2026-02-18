@@ -23,6 +23,9 @@ export class UIManager {
     // Track injected style elements for cleanup
     this._injectedStyles = [];
 
+    // Track active popup elements and their removal timeouts
+    this._activePopups = [];
+
     // Inject overlay styles once
     this._injectOverlayStyles();
 
@@ -287,7 +290,11 @@ export class UIManager {
     `;
     document.body.appendChild(popup);
 
-    setTimeout(() => popup.remove(), 1000);
+    const timeoutId = setTimeout(() => {
+      popup.remove();
+      this._activePopups = this._activePopups.filter(p => p.element !== popup);
+    }, 1000);
+    this._activePopups.push({ element: popup, timeoutId });
   }
 
   showLevelUpPopup(level) {
@@ -327,7 +334,11 @@ export class UIManager {
     `;
     document.body.appendChild(popup);
 
-    setTimeout(() => popup.remove(), 2000);
+    const timeoutId = setTimeout(() => {
+      popup.remove();
+      this._activePopups = this._activePopups.filter(p => p.element !== popup);
+    }, 2000);
+    this._activePopups.push({ element: popup, timeoutId });
   }
 
   showPowerUpMessage(message) {
@@ -345,12 +356,21 @@ export class UIManager {
     popup.textContent = message;
     document.body.appendChild(popup);
 
-    setTimeout(() => {
+    const outerTimeoutId = setTimeout(() => {
       popup.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
       popup.style.opacity = '0';
       popup.style.transform = 'translate(-50%, -70%)';
-      setTimeout(() => popup.remove(), 500);
+      const innerTimeoutId = setTimeout(() => {
+        popup.remove();
+        this._activePopups = this._activePopups.filter(p => p.element !== popup);
+      }, 500);
+      // Replace the outer timeout entry with the inner one
+      const entry = this._activePopups.find(p => p.element === popup);
+      if (entry) {
+        entry.timeoutId = innerTimeoutId;
+      }
     }, 1500);
+    this._activePopups.push({ element: popup, timeoutId: outerTimeoutId });
   }
 
   // ============================================
@@ -447,7 +467,9 @@ export class UIManager {
     const btnContainer = document.createElement('div');
     const btn = document.createElement('button');
     btn.textContent = 'Play Again';
-    btn.addEventListener('click', () => location.reload());
+    const btnClickHandler = () => location.reload();
+    btn.addEventListener('click', btnClickHandler);
+    this.eventListeners.push({ element: btn, event: 'click', handler: btnClickHandler });
     btnContainer.appendChild(btn);
     overlay.appendChild(btnContainer);
 
@@ -551,7 +573,9 @@ export class UIManager {
 
     const btn = document.createElement('button');
     btn.textContent = 'Try Again';
-    btn.addEventListener('click', () => location.reload());
+    const btnClickHandler = () => location.reload();
+    btn.addEventListener('click', btnClickHandler);
+    this.eventListeners.push({ element: btn, event: 'click', handler: btnClickHandler });
     overlay.appendChild(btn);
 
     const hint = document.createElement('p');
@@ -887,6 +911,15 @@ export class UIManager {
       element.removeEventListener(event, handler);
     });
     this.eventListeners = [];
+
+    // Clear active popup timeouts and remove popup elements
+    this._activePopups.forEach(({ element, timeoutId }) => {
+      clearTimeout(timeoutId);
+      if (element.parentNode) {
+        element.remove();
+      }
+    });
+    this._activePopups = [];
 
     // Remove injected style elements
     this._injectedStyles.forEach(style => style.remove());
