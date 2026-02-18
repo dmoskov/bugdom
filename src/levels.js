@@ -12,6 +12,7 @@ export class LevelManager {
         this.confetti = null;
         this._pendingTimeouts = [];
         this._pendingAnimationFrames = [];
+        this._timerGeneration = 0;
         this._currentLevel = null;
         this._initializePositions();
         this.boundarySize = 50;
@@ -26,6 +27,7 @@ export class LevelManager {
         this._pendingTimeouts = [];
         this._pendingAnimationFrames.forEach(id => cancelAnimationFrame(id));
         this._pendingAnimationFrames = [];
+        this._timerGeneration++;
     }
 
     /**
@@ -408,8 +410,11 @@ export class LevelManager {
         const startScale = clover.scale.x;
         const startY = clover.position.y;
         let progress = 0;
+        const generation = this._timerGeneration;
 
         const animateStep = () => {
+            if (this._timerGeneration !== generation) return;
+
             progress += 0.08;
 
             if (progress >= 1) {
@@ -558,8 +563,14 @@ export class LevelManager {
         if (!this.confetti) return;
 
         this.scene.remove(this.confetti);
-        this.confetti.geometry.dispose();
-        this.confetti.material.dispose();
+        const geom = this.confetti.geometry;
+        if (geom && (!geom.userData || !geom.userData.shared)) {
+            geom.dispose();
+        }
+        const mat = this.confetti.material;
+        if (mat && (!mat.userData || !mat.userData.shared)) {
+            mat.dispose();
+        }
         this.confetti = null;
     }
 
