@@ -583,6 +583,7 @@ export class LevelManager {
      */
     applyLevelEnvironment(level, ambientLight, directionalLight, scene, enemyManager, collectiblesManager) {
         this.cancelPendingTimers();
+        this.clearConfetti();
         this._currentLevel = level;
 
         if (level === 3) {

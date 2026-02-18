@@ -933,6 +933,66 @@ class DayNightCycle {
 
         // Clear all event listeners
         this.offAll();
+
+        // Dispose Three.js GPU resources if scene supports removal
+        const sceneRemove = this.scene && typeof this.scene.remove === 'function'
+            ? obj => this.scene.remove(obj)
+            : () => {};
+
+        // Dispose firefly InstancedMesh
+        if (this.fireflies) {
+            sceneRemove(this.fireflies);
+            this.fireflies.geometry.dispose();
+            this.fireflies.material.dispose();
+            this.fireflies = null;
+        }
+
+        // Dispose point lights and their lamp post meshes
+        this.pointLights.forEach(lampData => {
+            sceneRemove(lampData.light);
+            if (lampData.light.shadow && lampData.light.shadow.map) {
+                lampData.light.shadow.map.dispose();
+            }
+            // Dispose lamp mesh attached to the light
+            if (lampData.light.userData.lampMesh) {
+                sceneRemove(lampData.light.userData.lampMesh);
+                lampData.light.userData.lampMesh.geometry.dispose();
+                lampData.light.userData.lampMesh.material.dispose();
+            }
+        });
+        this.pointLights = [];
+
+        // Dispose sun
+        if (this.sun) {
+            sceneRemove(this.sun);
+            this.sun.geometry.dispose();
+            this.sun.material.dispose();
+            if (this.sunGlow) {
+                this.sunGlow.geometry.dispose();
+                this.sunGlow.material.dispose();
+            }
+            this.sun = null;
+        }
+
+        // Dispose moon (and its children: glow + craters)
+        if (this.moon) {
+            sceneRemove(this.moon);
+            this.moon.traverse(child => {
+                if (child.isMesh || child.isPoints) {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                }
+            });
+            this.moon = null;
+        }
+
+        // Dispose stars
+        if (this.stars) {
+            sceneRemove(this.stars);
+            this.stars.geometry.dispose();
+            this.stars.material.dispose();
+            this.stars = null;
+        }
     }
 
     // ============================================

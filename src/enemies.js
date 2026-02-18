@@ -603,6 +603,19 @@ export class EnemyManager {
             // Remove dead enemies
             if (enemy.health <= 0) {
                 this.scene.remove(enemy.mesh);
+                // Dispose all geometry/materials in enemy mesh hierarchy
+                enemy.mesh.traverse(child => {
+                    if (child.isMesh) {
+                        if (child.geometry) child.geometry.dispose();
+                        if (child.material) {
+                            if (Array.isArray(child.material)) {
+                                child.material.forEach(m => m.dispose());
+                            } else {
+                                child.material.dispose();
+                            }
+                        }
+                    }
+                });
                 this.enemies.splice(i, 1);
 
                 // Remove from specific arrays
@@ -640,6 +653,8 @@ export class EnemyManager {
                         // Web hit!
                         this.webPlayer(player);
                         this.scene.remove(proj);
+                        if (proj.geometry) proj.geometry.dispose();
+                        if (proj.material) proj.material.dispose();
                         this.scene.userData.projectiles.splice(i, 1);
                         continue;
                     }
@@ -648,6 +663,8 @@ export class EnemyManager {
                 // Remove expired projectiles
                 if (proj.userData.lifetime <= 0) {
                     this.scene.remove(proj);
+                    if (proj.geometry) proj.geometry.dispose();
+                    if (proj.material) proj.material.dispose();
                     this.scene.userData.projectiles.splice(i, 1);
                 }
             }
@@ -672,6 +689,8 @@ export class EnemyManager {
 
                 if (slime.userData.lifetime <= 0) {
                     this.scene.remove(slime);
+                    if (slime.geometry) slime.geometry.dispose();
+                    if (slime.material) slime.material.dispose();
                     this.scene.userData.slimeTrails.splice(i, 1);
                 }
             }
@@ -680,6 +699,15 @@ export class EnemyManager {
 
     webPlayer(player) {
         if (!player.userData) player.userData = {};
+
+        // Dispose any existing web sphere before creating a new one
+        if (player.userData.webSphere) {
+            this.scene.remove(player.userData.webSphere);
+            if (player.userData.webSphere.geometry) player.userData.webSphere.geometry.dispose();
+            if (player.userData.webSphere.material) player.userData.webSphere.material.dispose();
+            player.userData.webSphere = null;
+        }
+
         player.userData.isWebbed = true;
         player.userData.webTimer = 2.5; // 2.5 seconds paralysis
 
@@ -723,6 +751,19 @@ export class EnemyManager {
     removeAll() {
         this.enemies.forEach(enemy => {
             this.scene.remove(enemy.mesh);
+            // Dispose all geometry/materials in enemy mesh hierarchy
+            enemy.mesh.traverse(child => {
+                if (child.isMesh) {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                }
+            });
         });
         this.enemies = [];
         this.spiders = [];
@@ -730,13 +771,21 @@ export class EnemyManager {
 
         // Clean up projectiles
         if (this.scene.userData.projectiles) {
-            this.scene.userData.projectiles.forEach(proj => this.scene.remove(proj));
+            this.scene.userData.projectiles.forEach(proj => {
+                this.scene.remove(proj);
+                if (proj.geometry) proj.geometry.dispose();
+                if (proj.material) proj.material.dispose();
+            });
             this.scene.userData.projectiles = [];
         }
 
         // Clean up slime trails
         if (this.scene.userData.slimeTrails) {
-            this.scene.userData.slimeTrails.forEach(slime => this.scene.remove(slime));
+            this.scene.userData.slimeTrails.forEach(slime => {
+                this.scene.remove(slime);
+                if (slime.geometry) slime.geometry.dispose();
+                if (slime.material) slime.material.dispose();
+            });
             this.scene.userData.slimeTrails = [];
         }
     }
