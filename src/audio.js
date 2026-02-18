@@ -107,6 +107,11 @@ class AudioManager {
 
             osc.start(startTime);
             osc.stop(startTime + noteLength + 0.1);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         });
 
         // Add a sparkle effect for four-leaf clover
@@ -134,6 +139,11 @@ class AudioManager {
 
             osc.start(noteStart);
             osc.stop(noteStart + 0.15);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         }
     }
 
@@ -158,7 +168,12 @@ class AudioManager {
         thudGain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
 
         thudOsc.start(now);
-        thudOsc.stop(now + 0.35);
+        thudOsc.stop(now + 0.3);
+
+        thudOsc.onended = () => {
+            thudOsc.disconnect();
+            thudGain.disconnect();
+        };
 
         // Dissonant overtone
         const disOsc = this.context.createOscillator();
@@ -175,7 +190,12 @@ class AudioManager {
         disGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
         disOsc.start(now);
-        disOsc.stop(now + 0.25);
+        disOsc.stop(now + 0.2);
+
+        disOsc.onended = () => {
+            disOsc.disconnect();
+            disGain.disconnect();
+        };
 
         // Noise burst for impact
         this.playNoiseBurst(now, 0.1, 0.15);
@@ -240,6 +260,11 @@ class AudioManager {
 
             osc.start(startTime);
             osc.stop(startTime + noteLength + 0.1);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         }
 
         // Add excitement with a quick sweep
@@ -259,6 +284,11 @@ class AudioManager {
 
         sweepOsc.start(now);
         sweepOsc.stop(now + 0.2);
+
+        sweepOsc.onended = () => {
+            sweepOsc.disconnect();
+            sweepGain.disconnect();
+        };
     }
 
     // Level up - triumphant ascending phrase
@@ -293,6 +323,11 @@ class AudioManager {
 
             osc.start(startTime);
             osc.stop(startTime + note.dur + 0.1);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         });
 
         // Add celebratory chime
@@ -320,6 +355,11 @@ class AudioManager {
 
         osc.start(now);
         osc.stop(now + 0.1);
+
+        osc.onended = () => {
+            osc.disconnect();
+            gain.disconnect();
+        };
     }
 
     // Pause sound - descending tone
@@ -343,6 +383,11 @@ class AudioManager {
 
         osc.start(now);
         osc.stop(now + 0.2);
+
+        osc.onended = () => {
+            osc.disconnect();
+            gain.disconnect();
+        };
     }
 
     // Resume sound - ascending tone
@@ -366,6 +411,11 @@ class AudioManager {
 
         osc.start(now);
         osc.stop(now + 0.2);
+
+        osc.onended = () => {
+            osc.disconnect();
+            gain.disconnect();
+        };
     }
 
     // Game over - sad descending tone
@@ -460,6 +510,11 @@ class AudioManager {
 
         finalOsc.start(finalStart);
         finalOsc.stop(finalStart + 1.6);
+
+        finalOsc.onended = () => {
+            finalOsc.disconnect();
+            finalGain.disconnect();
+        };
     }
 
     // Power-up collection - uplifting tone
@@ -492,6 +547,11 @@ class AudioManager {
 
             osc.start(startTime);
             osc.stop(startTime + note.dur + 0.1);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         });
 
         // Add sparkle effect
@@ -542,6 +602,11 @@ class AudioManager {
 
             osc.start(startTime);
             osc.stop(startTime + note.dur + 0.1);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         });
     }
 
@@ -571,6 +636,11 @@ class AudioManager {
 
             osc.start(noteStart);
             osc.stop(noteStart + 2);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         });
     }
 
@@ -602,6 +672,9 @@ class AudioManager {
 
         const now = this.context.currentTime;
         const loopDuration = 8; // 8 second loop
+
+        // Clear stale refs from previous loop (nodes have already ended)
+        this.musicNodes = [];
 
         // Play all music layers
         this.playMusicChords(now);
@@ -667,6 +740,17 @@ class AudioManager {
         osc.stop(startTime + duration + 0.1);
         detune.start(startTime);
         detune.stop(startTime + duration + 0.1);
+
+        this.musicNodes.push(osc, detune);
+
+        osc.onended = () => {
+            osc.disconnect();
+            gain.disconnect();
+        };
+        detune.onended = () => {
+            detune.disconnect();
+            detuneGain.disconnect();
+        };
     }
 
     // Play melodic line layer
@@ -704,6 +788,13 @@ class AudioManager {
 
             osc.start(startTime);
             osc.stop(startTime + note.dur + 0.1);
+
+            this.musicNodes.push(osc);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         });
     }
 
@@ -734,6 +825,13 @@ class AudioManager {
 
             osc.start(startTime);
             osc.stop(startTime + note.dur + 0.1);
+
+            this.musicNodes.push(osc);
+
+            osc.onended = () => {
+                osc.disconnect();
+                gain.disconnect();
+            };
         });
     }
 
@@ -744,6 +842,11 @@ class AudioManager {
             clearTimeout(this.musicLoopTimeoutId);
             this.musicLoopTimeoutId = null;
         }
+        // Stop all active music oscillators (triggers onended → disconnect)
+        this.musicNodes.forEach(node => {
+            try { node.stop(); } catch (_) { /* already stopped */ }
+        });
+        this.musicNodes = [];
     }
 
     // ============================================
