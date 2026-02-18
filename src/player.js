@@ -47,10 +47,7 @@ export class PlayerCharacter {
     this.addBugHead(bugGroup);
     this.addBugEyes(bugGroup);
     this.addBugAntennae(bugGroup);
-    this.addBugLegs(bugGroup);
-
-    // Store reference to legs for animation
-    bugGroup.userData.legs = bugGroup.children.filter(child => child.userData.legIndex !== undefined);
+    bugGroup.userData.legs = this.addBugLegs(bugGroup);
 
     return bugGroup;
   }
@@ -130,6 +127,7 @@ export class PlayerCharacter {
         { x: 0.4, z: -0.3, rotZ: -0.8 }   // Back right
     ];
 
+    const legs = [];
     legPositions.forEach((pos, index) => {
         const leg = new THREE.Mesh(legGeometry, legMaterial);
         leg.position.set(pos.x, 0.3, pos.z);
@@ -138,7 +136,9 @@ export class PlayerCharacter {
         leg.castShadow = true;
         leg.userData.legIndex = index;
         bugGroup.add(leg);
+        legs.push(leg);
     });
+    return legs;
   }
 
   /**
@@ -280,8 +280,12 @@ export class PlayerCharacter {
    * @param {number} currentTime - Current game time in milliseconds
    */
   flashRed(currentTime) {
-    this.isFlashing = true;
     this.flashEndTime = currentTime + 200; // Flash for 200ms
+
+    // If already flashing, just extend the timer — originalColors already holds the true colors
+    if (this.isFlashing) return;
+
+    this.isFlashing = true;
     this.originalColors = [];
 
     // Store original colors and set to red
