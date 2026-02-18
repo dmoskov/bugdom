@@ -26,6 +26,9 @@ export class UIManager {
     // Track active popup elements and their removal timeouts
     this._activePopups = [];
 
+    // Track welcome message timeout IDs
+    this._welcomeTimeoutIds = [];
+
     // Inject overlay styles once
     this._injectOverlayStyles();
 
@@ -619,13 +622,17 @@ export class UIManager {
       welcomeMessage.classList.remove('hidden');
 
       // Auto-hide after 5 seconds
-      setTimeout(() => {
+      const outerTimeoutId = setTimeout(() => {
         welcomeMessage.classList.add('hiding');
-        setTimeout(() => {
+        const innerTimeoutId = setTimeout(() => {
           welcomeMessage.classList.add('hidden');
           welcomeMessage.classList.remove('hiding');
+          this._welcomeTimeoutIds = this._welcomeTimeoutIds.filter(id => id !== innerTimeoutId);
         }, 500); // Match animation duration
+        this._welcomeTimeoutIds.push(innerTimeoutId);
+        this._welcomeTimeoutIds = this._welcomeTimeoutIds.filter(id => id !== outerTimeoutId);
       }, 5000);
+      this._welcomeTimeoutIds.push(outerTimeoutId);
     }
   }
 
@@ -655,6 +662,17 @@ export class UIManager {
     const difficultyButtons = document.querySelectorAll('.difficulty-btn');
     const difficultyDesc = document.getElementById('difficulty-desc');
 
+    // Remove previously registered difficulty listeners to prevent duplicates
+    const oldListeners = this.eventListeners.filter(
+      entry => entry.event === 'click' && entry._isDifficultyHandler
+    );
+    oldListeners.forEach(({ element, event, handler }) => {
+      element.removeEventListener(event, handler);
+    });
+    this.eventListeners = this.eventListeners.filter(
+      entry => !entry._isDifficultyHandler
+    );
+
     if (difficultyButtons && difficultyDesc) {
       difficultyButtons.forEach(btn => {
         const difficultyHandler = () => {
@@ -677,7 +695,7 @@ export class UIManager {
           }
         };
         btn.addEventListener('click', difficultyHandler);
-        this.eventListeners.push({ element: btn, event: 'click', handler: difficultyHandler });
+        this.eventListeners.push({ element: btn, event: 'click', handler: difficultyHandler, _isDifficultyHandler: true });
       });
     }
   }
@@ -920,6 +938,10 @@ export class UIManager {
       }
     });
     this._activePopups = [];
+
+    // Clear welcome message timeouts
+    this._welcomeTimeoutIds.forEach(id => clearTimeout(id));
+    this._welcomeTimeoutIds = [];
 
     // Remove injected style elements
     this._injectedStyles.forEach(style => style.remove());

@@ -14,6 +14,7 @@ class AudioManager {
         this.musicNodes = [];
         this.musicLoopTimeoutId = null;
         this._gameOverActive = false;
+        this._gameOverTimeoutId = null;
 
         // Volume levels (0-1)
         this.masterVolume = 0.7;
@@ -432,7 +433,8 @@ class AudioManager {
         this._playGameOverFinalNote(now);
 
         // Reset guard after the full sequence completes (~3.1s)
-        setTimeout(() => {
+        this._gameOverTimeoutId = setTimeout(() => {
+            this._gameOverTimeoutId = null;
             this._gameOverActive = false;
         }, 3200);
     }
@@ -841,6 +843,11 @@ class AudioManager {
         if (this.musicLoopTimeoutId !== null) {
             clearTimeout(this.musicLoopTimeoutId);
             this.musicLoopTimeoutId = null;
+        }
+        if (this._gameOverTimeoutId !== null) {
+            clearTimeout(this._gameOverTimeoutId);
+            this._gameOverTimeoutId = null;
+            this._gameOverActive = false;
         }
         // Stop all active music oscillators (triggers onended → disconnect)
         this.musicNodes.forEach(node => {
