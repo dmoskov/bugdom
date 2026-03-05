@@ -10,7 +10,8 @@
 - **Language:** JavaScript (ES modules, `"type": "module"`)
 - **Testing:** Vitest 1 + jsdom environment + V8 coverage
 - **Hosting:** AWS Amplify (see `amplify.yml`)
-- **CI:** GitHub Actions (Dependabot auto-merge for patch/minor)
+- **Linting:** ESLint 10 (flat config in `eslint.config.js`)
+- **CI:** GitHub Actions (lint + test on PR, Dependabot auto-merge for patch/minor)
 
 ## Commands
 
@@ -19,6 +20,7 @@ npm install              # Install dependencies
 npm run dev              # Start Vite dev server (port 3000, auto-open)
 npm run build            # Production build → dist/
 npm run preview          # Preview production build
+npm run lint             # ESLint (src/ only)
 npm run test             # Run vitest in watch mode
 npm run test:run         # Run vitest once (CI mode)
 npm run test:ui          # Vitest browser UI
@@ -29,7 +31,8 @@ npm run test:ui          # Vitest browser UI
 ```
 ├── index.html               # Entry point — game UI/HUD markup + styles (large file)
 ├── CLAUDE.md                # This file — project conventions
-├── package.json             # Dependencies: three, vite, vitest, jsdom
+├── package.json             # Dependencies: three, vite, vitest, jsdom, eslint
+├── eslint.config.js         # ESLint flat config (ES modules, browser globals)
 ├── vite.config.js           # Vite config (port 3000, dist output)
 ├── vitest.config.js         # Vitest config (jsdom env, V8 coverage)
 ├── amplify.yml              # AWS Amplify build spec
@@ -37,6 +40,7 @@ npm run test:ui          # Vitest browser UI
 ├── .github/
 │   ├── dependabot.yml       # Dependabot config
 │   └── workflows/
+│       ├── ci.yml           # Lint + test on push/PR to main
 │       └── dependabot-auto-merge.yml
 └── src/
     ├── main.js              # Entry point — imports all modules, wires dependencies, starts game loop
@@ -102,12 +106,30 @@ All 18 source modules have co-located test files:
 `errorHandler`, `gameLoop`, `gameState`, `initialization`, `input`,
 `levels`, `particles`, `player`, `sceneSetup`, `touch`, `ui`
 
+## CI Pipeline
+
+CI runs on every push/PR to `main` via `.github/workflows/ci.yml`.
+
+### Lint (gate)
+
+- **ESLint must pass** — lint failure blocks the PR.
+- Config: `eslint.config.js` (flat config, ESLint v10). Scopes to `src/` only.
+- ~28 pre-existing warnings are configured as `warn`, not `error`, so they do not fail CI.
+- Run locally: `npm run lint`
+
+### Tests (non-blocking)
+
+- **~70 of ~491 tests fail** due to jsdom not supporting WebGL canvas. These are pre-existing on `main`, NOT regressions.
+- CI test step uses `continue-on-error: true` — tests report results but **do not gate PRs**.
+- **Do NOT try to "fix" these WebGL test failures** unless specifically tasked with adding WebGL mocking or switching to a canvas-capable test environment.
+
 ## Before Committing
 
-1. `npm run test:run` — all tests must pass
-2. No `console.log` debugging statements (removed per governance)
-3. Verify event listener cleanup if you add new listeners
-4. Timer IDs must be stored and cleared properly
+1. `npm run lint` — ESLint must pass (zero errors)
+2. `npm run test:run` — run tests; ~70 WebGL-related failures are pre-existing (see CI section above)
+3. No `console.log` debugging statements (removed per governance)
+4. Verify event listener cleanup if you add new listeners
+5. Timer IDs must be stored and cleared properly
 
 ## Code Conventions
 
@@ -131,8 +153,7 @@ All 18 source modules have co-located test files:
 - `enemies.js` and `levels.js` are the largest source files (>1000 lines each)
 - Some README sections are outdated (e.g., "Next Steps" lists features already implemented)
 - Root directory has many analysis/report markdown files from past code reviews
-- No ESLint or Prettier configured — no automated code formatting
-- No CI pipeline for tests yet (only Dependabot auto-merge workflow exists)
+- No Prettier configured — no automated code formatting
 - `.gitmodules` references a submodule but `ai-dev-tools/` directory is empty
 
 ## Deployment
