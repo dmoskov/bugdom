@@ -1,3 +1,6 @@
+> **Public deployment retirement — 2026-09-06**
+> Public hosting is retired, including rosebug.online and both Amplify apps dz5cbb5cfrggf and d3qg6dx8w2m9r7. Edge authentication is enabled; automatic builds/branch creation are disabled. amplify.yml intentionally blocks deployment. Source/data are preserved. Reopening requires an explicit user request and deliberate reversal of both AWS settings and deployment guards.
+
 # Bugdom - Level 1 Test Terrain
 
 This is the first test level for the Bugdom 3D game remake, featuring a fully playable 3D adventure game with collectibles, enemies, power-ups, and dynamic effects.
